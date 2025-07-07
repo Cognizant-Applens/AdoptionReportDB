@@ -1,0 +1,118 @@
+﻿CREATE Procedure [ADPR].[Adoption_Associate_MailRecipientlist_AllBU]  
+@ReportType VARCHAR(15)
+AS  
+BEGIN    
+BEGIN TRY  
+BEGIN TRAN
+SET NOCOUNT ON;  
+
+--DECLARE @ReportType VARCHAR(10) = 'ADM'
+--SELECT DISTINCT SBU, [Type] FROM [ADP].[MailRecipient_Associate] ORDER BY SBU, [Type]
+--SELECT * FROM [ADP].[MailRecipient_Associate] WHERE ID IN (35,36,55)
+--SELECT * FROM [ADPR].[MailRecipient_Associate] WHERE ID IN (35,36,55)
+
+IF @ReportType = 'ADM' BEGIN
+	UPDATE [ADPR].[MailRecipient_Associate] SET IsDeleted=1 WHERE [Type]=1 AND SBU='ADM' AND ID NOT IN (35,36,55,12595
+    ,12615
+    ,12647
+    ,1891
+    ,12510
+    ,12511
+    ,12512
+    ,12535
+    ,686
+    ,37
+    ,38
+    ,39
+    ,42
+    ,45
+    ,46
+    ,12672)
+	Update [ADPR].[MailRecipient_Associate] SET IsDeleted=1 WHERE [Type]=4 AND SBU='ADM' AND ID NOT IN (52,53,12705
+    ,12706
+    ,12707
+    ,12708
+    ,12709
+    ,12710
+    ,12711
+    ,12712
+    ,12713
+    ,12714
+    ,12715
+    ,12716
+    ,12717
+    ,12718
+    ,12719
+    ,12720)
+END
+ELSE BEGIN
+
+UPDATE [ADPR].[MailRecipient_Associate] SET IsDeleted=1 WHERE [Type]=1 AND SBU=@ReportType
+
+END
+--ELSE IF @ReportType = 'AIA' BEGIN
+--	UPDATE [ADPR].[MailRecipient_Associate] SET IsDeleted=1 WHERE [Type]=1 AND SBU='AIA' AND ID NOT IN (56)
+--END
+--ELSE IF @ReportType = 'CDBI' BEGIN
+--	UPDATE [ADPR].[MailRecipient_Associate] SET IsDeleted=1 WHERE [Type]=1 And SBU='CDB' AND ID NOT IN (27,57)
+--END
+--ELSE IF @ReportType = 'EAS' BEGIN
+--	UPDATE [ADPR].[MailRecipient_Associate] SET IsDeleted=1 WHERE [Type]=1 AND SBU='EAS' AND ID NOT IN (58)
+--END
+
+SELECT DISTINCT CC.PROJECT_MANAGER as EmployeeID,A.Email AS EmailID 
+INTO #TempADM
+FROM [ADPR].[Project_Compliance] PC (NOLOCK)
+JOIN adp.CentralRepository_Project CP (NOLOCK)
+ON PC.EsaProjectID=CP.Project_ID
+JOIN [Adp].[CentralRepository_Current_ProjectManager] CC (NOLOCK) 
+ON CC.PROJECT_ID=CP.Project_ID
+JOIN [AppVisionLens].[ESA].[Associates] A (NOLOCK) 
+ON CC.PROJECT_MANAGER=A.AssociateID AND A.IsActive=1
+
+MERGE [ADPR].[MailRecipient_Associate] T
+USING  #TempADM S ON T.EmployeeID=S.EmployeeID AND T.Type=1 AND T.SBU=@ReportType
+WHEN MATCHED THEN UPDATE SET IsDeleted=0
+WHEN NOT MATCHED THEN INSERT (EmployeeID,EmailID,Type,SBU,IsDeleted)
+VALUES (S.EmployeeID,S.EmailID,1,@ReportType,0);
+
+IF @ReportType = 'ADM' BEGIN
+	MERGE [ADPR].[MailRecipient_Associate] T
+	USING  #TempADM S ON T.EmployeeID=S.EmployeeID AND T.Type=4 AND T.SBU=@ReportType
+	WHEN MATCHED THEN UPDATE SET IsDeleted=0
+	WHEN NOT MATCHED THEN INSERT (EmployeeID,EmailID,Type,SBU,IsDeleted) 
+	VALUES (S.EmployeeID,S.EmailID,4,@ReportType,0);
+END
+
+select (STUFF((SELECT distinct ',' +  
+ EmailID from  [ADPR].[MailRecipient_Associate] where [Type]=1  and SBU=@ReportType and isdeleted='0'
+         FOR XML PATH(''), TYPE  
+        ).value('.', 'NVARCHAR(MAX)')   
+        , 1, 1, '')) as To_SDList  
+ ,(STUFF((SELECT distinct ',' +  
+        EmailID from  [ADPR].[MailRecipient_Associate] where [Type]=2  and SBU=@ReportType and isdeleted='0'
+         FOR XML PATH(''), TYPE  
+        ).value('.', 'NVARCHAR(MAX)')   
+        , 1, 1, '')) as Cc_SDList  
+ ,(STUFF((SELECT distinct ',' +  
+ EmailID from  [ADPR].[MailRecipient_Associate] where [Type]=3  and SBU=@ReportType and isdeleted='0'
+         FOR XML PATH(''), TYPE  
+        ).value('.', 'NVARCHAR(MAX)')   
+        , 1, 1, '')) as Bcc_SDList   
+ ,(STUFF((SELECT distinct ',' +  
+ EmailID from  [ADPR].[MailRecipient_Associate] where [Type]=4  and SBU=@ReportType and isdeleted='0'
+         FOR XML PATH(''), TYPE  
+        ).value('.', 'NVARCHAR(MAX)')   
+        , 1, 1, '')) as Monthly_ToList        
+  COMMIT TRAN
+END TRY  
+BEGIN CATCH  
+	DECLARE @ErrorMessage VARCHAR(8000);  
+	SELECT @ErrorMessage = ERROR_MESSAGE()  
+	--INSERT Error      
+	EXEC [AppVisionLens].[dbo].AVL_InsertError '[ADPR].[Adoption_Associate_MailRecipientlist_AllBU]', @ErrorMessage, '',''  
+	ROLLBACK TRAN
+	RETURN @ErrorMessage  
+END CATCH     
+  
+END

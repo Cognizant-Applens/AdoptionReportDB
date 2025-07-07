@@ -1,0 +1,25 @@
+﻿CREATE TABLE [ADPR].[Associate_Allocation_Raw] (
+    [ID]                    BIGINT          IDENTITY (1, 1) NOT NULL,
+    [Parent_Accountid]      CHAR (50)       NULL,
+    [Parent_AccountName]    VARCHAR (100)   NULL,
+    [SBU]                   VARCHAR (50)    NULL,
+    [Vertical]              VARCHAR (50)    NULL,
+    [SDM_ID]                CHAR (50)       NULL,
+    [SDM_Name]              VARCHAR (100)   NULL,
+    [SDD_ID]                CHAR (50)       NULL,
+    [SDD_Name]              VARCHAR (100)   NULL,
+    [Project_ID]            CHAR (15)       NOT NULL,
+    [Project Name]          VARCHAR (100)   NULL,
+    [Associate_id]          CHAR (15)       NULL,
+    [Associate_Name]        VARCHAR (100)   NULL,
+    [Allocation_Startdate]  DATETIME        NULL,
+    [Allocation_Enddate]    DATETIME        NULL,
+    [Allocation_Percentage] DECIMAL (10, 4) NULL,
+    [ESA_FTE_Count]         DECIMAL (10, 4) NULL,
+    [Available_Hours]       DECIMAL (10, 2) NULL,
+    [DE_Inscope]            VARCHAR (50)    NULL,
+    [Department_Name]       VARCHAR (100)   NULL,
+    [Job_code]              VARCHAR (50)    NULL,
+    [Designation]           VARCHAR (50)    NULL
+);
+

@@ -1,0 +1,4204 @@
+﻿  
+CREATE   PROCEDURE [ADPR].[AssociateData_WeeklyAndMonthly] --'ADM','Week'  
+  
+  
+(  
+@ReportType varchar(10),  
+@JobType varchar(10)  
+)  
+AS    
+BEGIN        
+BEGIN TRY       
+SET NOCOUNT ON;    
+    
+DECLARE @StartDate date        
+DECLARE @EndDate date        
+DECLARE @WorkHours int        
+DECLARE @WorkdAYS int          
+DECLARE @FirstDay date        
+DECLARE @LastDate date        
+DECLARE @DatepartToday INT       
+DECLARE @IndiaHours INT = 9;      
+Declare @NonIndiaHours INT =8;    
+--Declare @ReportType varchar(10)='ADM'  
+--Declare @JobType varchar(10)='Week'  
+  
+SET @DatepartToday = DATEPART(dd, GETDATE())    
+    
+IF(@JobType='Week')    
+BEGIN    
+ IF(@DatepartToday != 3)           
+ BEGIN           
+  SELECT @FirstDay =  DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE() - 2), 0),@LastDate = GETDATE() - 2        
+  SELECT @StartDate = (SELECT @FirstDay), @EndDate = (SELECT @LastDate)    
+ END     
+ELSE     
+ BEGIN           
+  SELECT @FirstDay = DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE() - 3), 0),  @LastDate = GETDATE() - 3      
+  SELECT @StartDate = (SELECT @FirstDay),@EndDate = (SELECT @LastDate)      
+ END        
+END    
+ELSE    
+BEGIN    
+ IF(@DatepartToday != 3)      
+ BEGIN      
+  SET @FirstDay =   DATEADD(month, DATEDIFF(month, -2, getdate()) - 2, 0) --select DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE() - 2), 0)      
+  SET @LastDate =   DATEADD(ss, -1, DATEADD(month, DATEDIFF(month, 0, getdate()), 0))--GETDATE() - 2    
+  SET @StartDate = (SELECT  @FirstDay)      
+  SET @EndDate = (SELECT   @LastDate)      
+ END     
+ ELSE BEGIN      
+  SET @FirstDay = DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE() - 3), 0)      
+  SET @LastDate = GETDATE() - 3      
+  SET @StartDate = (SELECT  @FirstDay)      
+  SET @EndDate = (SELECT  @LastDate)      
+ END     
+END    
+    
+SELECT @StartDate AS Startdate   
+  
+select @EndDate As EndDate    
+    
+IF OBJECT_ID(N'tempdb..#WeekDays') IS NOT NULL    
+BEGIN DROP TABLE #WeekDays END    
+    
+CREATE TABLE #WeekDays     
+(     
+DateList DATE,      
+DayWeek VARCHAR(15)     
+)    
+    
+DECLARE @FirstDayDatepart INT    
+SELECT @FirstDayDatepart = DATEPART(dd, @FirstDay)    
+DECLARE @LastDateDatepart INT      
+SELECT @LastDateDatepart = DATEPART(dd, @LastDate)    
+DECLARE @DATE DATE    
+SELECT @DATE = @FirstDay    
+    
+WHILE(@LastDateDatepart >= @FirstDayDatepart)           
+BEGIN    
+ INSERT INTO #WeekDays      
+  SELECT @DATE,DATENAME(dw, @DATE)     
+  SET @DATE = DATEADD(DAY, 1, @DATE)     
+  SET @FirstDayDatepart = @FirstDayDatepart + 1    
+END    
+    
+DELETE FROM #WeekDays WHERE DayWeek IN ('Saturday', 'Sunday')    
+    
+SELECT  @WorkdAYS = (SELECT COUNT(1) AS WorkDays FROM #WeekDays)    
+SELECT @WorkHours = (SELECT (COUNT(1) * 8) AS WorkHours FROM #WeekDays)  
+  
+  
+  
+--IF (@ReportType = 'ADM')  
+  
+--Begin  
+  
+--DELETE FROM [ADPR].Input_Excel_Associate WHERE ESAProjectId NOT IN (  
+--select distinct a.ESAProjectID  
+--from ADPR.Input_Excel_Associate(NOLOCK) a    
+--left join [Adp].[CentralRepository_ActiveAllocations](NOLOCK) b  on a.ESAProjectID=B.Project_ID   
+--WHERE (b.Allocation_Start_Date  BETWEEN @StartDate AND @EndDate)  
+--)  
+  
+  
+--DELETE FROM [ADPR].Input_Data_AssociateRAW WHERE ESAProjectId NOT IN (  
+--select distinct a.ESAProjectID  
+--from [ADPR].[Input_Data_AssociateRAW](NOLOCK) a    
+--left join [Adp].[CentralRepository_ActiveAllocations](NOLOCK) b  on a.ESAProjectID=B.Project_ID   
+--WHERE (b.Allocation_Start_Date  BETWEEN @StartDate AND @EndDate))  
+  
+--End  
+  
+--select distinct a.ESAProjectID  
+--from [ADPR].[Input_Data_AssociateRAW](NOLOCK) a    
+--left join [Adp].[CentralRepository_ActiveAllocations](NOLOCK) b  on a.ESAProjectID=B.Project_ID   
+--WHERE (B.Allocation_Start_Date BETWEEN '2023-10-01' AND '2023-10-25')  
+  
+-- SELECT * FROM  [ADPR].[Associate_Projects] WHERE ESAProjectID ='1000360404'  
+--SELECT COUNT(*) FROM ADP.Input_Excel_Associate  
+--SELECT COUNT(*) FROM ADP.Input_Data_AssociateRAW  
+  
+  
+IF OBJECT_ID(N'tempdb..#Associate_Applens') IS NOT NULL    
+BEGIN DROP TABLE #Associate_Applens END    
+    
+CREATE table #Associate_Applens (     
+ Id int not null identity(1,1),     
+ Project_ID Char(15) Not Null,     
+ Associate_id  varchar(10),     
+ App_User_id varchar(10),     
+ ISNonESAAuthorized varchar(10)     
+)        
+    
+INSERT INTO #Associate_Applens    
+SELECT DISTINCT        
+  T.EsaProjectID        
+  ,GA.EmployeeID        
+  ,ga.UserID        
+  ,ga.IsNonESAAuthorized        
+FROM [ADPR].[Input_Data_AssociateRAW] T      
+LEFT JOIN [AppVisionLens].esa.Projects GP  ON CONVERT(VARCHAR, GP.ID) = T.EsaProjectID     
+JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM ON CONVERT(VARCHAR, GP.ID) = PM.EsaProjectID     
+LEFT OUTER JOIN [AppVisionLens].AVL.MAS_LoginMaster GA ON PM.ProjectID = GA.ProjectID    
+WHERE GA.IsDeleted = '0'    
+    
+IF OBJECT_ID(N'tempdb..#FTE_GRT') IS NOT NULL    
+BEGIN DROP TABLE #FTE_GRT END    
+    
+CREATE table #FTE_GRT (     
+ Id int not null identity(1,1),    
+ Project_ID Char(15) Not Null,      
+ Associate_id  varchar(10),     
+ Allocation_Startdate datetime,     
+ Allocation_enddate datetime,     
+ Allocation_Percentage decimal(10,4),    
+ FTE_Location nvarchar(20)     
+)    
+  
+--Allocation Issue Fix  
+  
+IF OBJECT_ID(N'tempdb..#CentralRepository_LatestAllocation') IS NOT NULL    
+BEGIN DROP TABLE #CentralRepository_LatestAllocation END    
+  
+CREATE TABLE #CentralRepository_LatestAllocation(  
+ [Associate_ID] [char](11) NULL,  
+ [Project_ID] [char](15) NULL,  
+ [Allocation_Start_Date] [datetime] NULL,  
+ [Allocation_End_Date] [datetime] NULL,  
+ [Allocation_Percentage] [decimal](5, 2) NULL,  
+ [Location] [char](10) NULL,  
+ [LastUpdatedDateTime] [varchar](60) NULL,  
+ [Createddate] [datetime] NULL,  
+ [Created by] [varchar](20) NULL  
+);  
+  
+WITH LatestAllocationData AS (  
+SELECT Associate_ID, Project_ID, Allocation_Start_Date, Allocation_End_Date,Allocation_Percentage, Location, LastUpdatedDateTime, Createddate, [Created by],   
+ROW_NUMBER() OVER (PARTITION BY Associate_ID,Project_ID ORDER BY Allocation_End_Date DESC) AS R  
+FROM [Adp].[CentralRepository_Allocation] WHERE Allocation_Start_Date<=@EndDate AND Allocation_End_Date>@EndDate)  
+  
+  
+INSERT INTO #CentralRepository_LatestAllocation (Associate_ID, Project_ID, Allocation_Start_Date, Allocation_End_Date, Allocation_Percentage,   
+Location, LastUpdatedDateTime, Createddate, [Created by])  
+SELECT Associate_ID, Project_ID, Allocation_Start_Date, Allocation_End_Date, Allocation_Percentage,   
+Location, LastUpdatedDateTime, Createddate, [Created by] FROM LatestAllocationData WHERE R=1   
+  
+ INSERT INTO #FTE_GRT      
+ SELECT  DISTINCT      
+   T.EsaProjectID,    
+   GA.Associate_ID ,       
+   GA.[Allocation_Start_Date],      
+   GA.[Allocation_End_Date],      
+   GA.[Allocation_Percentage],GA.Location       
+  FROM [ADPR].[Input_Data_AssociateRAW]  T     
+  LEFT JOIN [AppVisionLens].esa.Projects GP ON CONVERT(VARCHAR, GP.ID) = T.EsaProjectID     
+  --LEFT OUTER JOIN [Adp].[CentralRepository_ActiveAllocations] GA ON CONVERT(VARCHAR, GP.ID) = GA.[Project_ID]    
+  LEFT OUTER JOIN #CentralRepository_LatestAllocation GA ON CONVERT(VARCHAR, GP.ID) = GA.[Project_ID]    
+  
+  WHERE ga.[Allocation_Start_Date] between  @startdate and @enddate AND ga.[Allocation_End_Date]>=@StartDate      
+    
+BEGIN    
+   IF OBJECT_ID(N'tempdb..#holidaylist') IS NOT NULL    
+   BEGIN DROP TABLE #holidaylist END    
+    
+ SELECT DISTINCT holiday,location,Datename(dw, holiday) AS 'DAY_NAME'    
+ INTO #holidaylist    
+ FROM [ADP].[CentralRepository_HolidayDate]    
+ WHERE Year(holiday) BETWEEN Year(@startdate) AND Year(@EndDate)    
+ AND Month(holiday) BETWEEN Month(@startdate) AND Month(@EndDate)    
+ AND holiday <=@EndDate    
+    
+ DELETE FROM #holidaylist WHERE  day_name IN ('Saturday','Sunday')    
+END    
+    
+ IF OBJECT_ID(N'tempdb..#Associate_WeekDays') IS NOT NULL  BEGIN DROP TABLE #Associate_WeekDays END    
+    
+CREATE TABLE #Associate_WeekDays (     
+ DateList DATE,    
+ DayWeek VARCHAR(100)     
+)      
+    
+IF OBJECT_ID(N'tempdb..#Associate_days') IS NOT NULL    
+ BEGIN DROP TABLE #Associate_days END    
+    
+CREATE table #Associate_days (     
+ Project_id Char(15) Not Null,    
+ Associate_id varchar(20),    
+Allocation_Startdate datetime,        
+    Allocation_Enddate datetime,        
+    Allocation_Percentage decimal(10,4),        
+    FTE_Location nvarchar(20),        
+    Workdays  int,        
+ Holidays int    
+)      
+    
+DECLARE @id_first int = (SELECT MIN(id) FROM #FTE_GRT)    
+DECLARE @id_last int = (SELECT MAX(id) FROM #FTE_GRT)    
+DECLARE @As_FirstDatepart INT    
+DECLARE @As_LastDatepart INT    
+DECLARE @AL_Date date    
+DECLARE @AssociateId varchar(10)     
+DECLARE @FTE_Location nvarchar(20)        
+DECLARE @Project_id Char(15)        
+DECLARE @Allocation_startdate datetime        
+DECLARE @Allocation_enddate datetime        
+DECLARE @allocation_Percentage_grt  decimal(10,4)    
+    
+WHILE(@id_last>=@id_first)    
+BEGIN    
+SET @As_FirstDatepart = DATEPART(dd, (SELECT Allocation_Startdate  FROM #FTE_GRT WHERE Id = @id_first))        
+SET @As_LastDatepart = DATEPART(dd, @EndDate)        
+SET @AL_Date = (SELECT Allocation_Startdate  FROM #FTE_GRT WHERE Id = @id_first)      
+SET @AssociateId = (SELECT Associate_id FROM #FTE_GRT WHERE Id = @id_first)        
+SET @Project_id = (SELECT Project_ID FROM #FTE_GRT WHERE Id = @id_first AND Associate_id = @AssociateId)        
+SET @Allocation_startdate = (SELECT Allocation_Startdate FROM #FTE_GRT WHERE Id = @id_first AND Associate_id = @AssociateId)        
+SET @Allocation_enddate = (SELECT  Allocation_enddate FROM #FTE_GRT WHERE Id = @id_first AND Associate_id = @AssociateId)        
+SET @allocation_Percentage_grt = (SELECT  Allocation_Percentage FROM #FTE_GRT WHERE Id = @id_first AND Associate_id = @AssociateId)        
+SET @FTE_Location =   (SELECT  FTE_Location FROM #FTE_GRT WHERE Id = @id_first AND Associate_id = @AssociateId)     
+    
+WHILE (@As_LastDatepart >= @As_FirstDatepart)     
+BEGIN     
+ INSERT INTO #Associate_WeekDays    
+ SELECT @AL_Date ,DATENAME(dw, @AL_Date)      
+ SET @AL_DATE = DATEADD(DAY, 1, @AL_DATE)    
+ SET @As_FirstDatepart = @As_FirstDatepart + 1      
+END    
+    
+DELETE FROM #Associate_WeekDays WHERE DayWeek IN ('Saturday', 'Sunday')      
+    
+INSERT INTO #Associate_days     
+SELECT        
+ @Project_id,    
+ @AssociateId,    
+ @Allocation_startdate,    
+ @Allocation_enddate,    
+ @allocation_Percentage_grt,    
+ @FTE_Location,    
+ (SELECT COUNT(1) FROM #Associate_WeekDays),    
+ (SELECT COUNT(holiday) As 'Holidays' FROM  #HOLIDAYLIST where Location=@FTE_Location    
+ and holiday BETWEEN @Allocation_startdate AND @Allocation_enddate)    
+    
+SET @id_first = @id_first + 1    
+TRUNCATE TABLE #Associate_WeekDays    
+END     
+    
+IF OBJECT_ID(N'tempdb..#Associate_diff') IS NOT NULL    
+ BEGIN DROP TABLE #Associate_diff END    
+    
+CREATE table #Associate_diff  (     
+ Project_id Char(15) Not Null,    
+ Associate_id varchar(20),    
+ Allocation_Startdate datetime,     
+ Allocation_Enddate datetime,     
+ Allocation_Percentage decimal(10,4),    
+ FTE_Location nvarchar(20),     
+ Workdays_diff int,     
+ Workdays_Loc int     
+)        
+    
+Insert into #Associate_diff      
+select DISTINCT Project_id , Associate_id, Allocation_Startdate,Allocation_Enddate,    
+Allocation_Percentage,FTE_Location,Workdays, Isnull(Workdays-Holidays,0) from #Associate_days    
+    
+IF OBJECT_ID(N'tempdb..#FTE_Cal') IS NOT NULL    
+BEGIN DROP TABLE #FTE_Cal END    
+    
+CREATE table #FTE_Cal        
+(           
+Project_ID Char(15) Not Null,           
+Associate_id  varchar(10),            
+Allocation_Startdate datetime,        
+Allocation_Enddate datetime,        
+Allocation_Percentage decimal(10,4),        
+FTE_Location nvarchar(20)  ,      
+FTE_City nvarchar(40)  ,      
+FTE_Country nvarchar(40)  ,      
+Days_different numeric,        
+FTE_Percentage decimal(10,4),        
+ESA_FTE_Count Decimal(10,4),        
+Available_Hours  Decimal(10,2)          
+)        
+INSERT INTO #FTE_Cal        
+ SELECT  DISTINCT      
+   a.Project_id        
+  ,a.Associate_id        
+  ,B.Allocation_Startdate        
+  ,b.Allocation_enddate        
+  ,B.Allocation_Percentage , A.FTE_Location,Ltrim(Rtrim(LC.City)) as 'City'    
+  ,Ltrim(Rtrim(LC.country)) as country        
+  ,sum(A.Workdays_diff )       
+  ,ISNULL(SUM((A.Workdays_diff / (CONVERT(DECIMAL(5, 2), @WorkdAYS))) * B.Allocation_Percentage), 0) AS FTE_Percentage        
+  ,ISNULL(SUM((A.Workdays_diff / CONVERT(DECIMAL(5, 2), @WorkdAYS)) * B.Allocation_Percentage) / 100, 0) AS ESA_FTE_Count        
+   ,CASE WHEN     
+   isnull(MHC.Mandatory_Hours,0)=0      
+  THEN      
+  ISNULL(SUM(Isnull(A.Workdays_Loc,0) * A.Allocation_Percentage *    
+  CASE WHEN Ltrim(Rtrim(LC.country))='IND' AND Ltrim(Rtrim(LC.City)) NOT IN ('Kolkata','Noida')    
+  THEN     
+  @IndiaHours ELSE @NonIndiaHours END)/100 , 0)       
+  ELSE      
+   ISNULL(SUM(Isnull(A.Workdays_Loc,0) * A.Allocation_Percentage * MHC.Mandatory_Hours)/100 , 0)       
+   END As Available_Hours      
+  FROM #Associate_diff A           
+  LEFT JOIN #FTE_GRT B   ON a.Associate_id = b.Associate_id        
+  AND a.Project_id = b.Project_ID  and a.Allocation_Startdate =b.Allocation_Startdate       
+  and a.Allocation_enddate =b.Allocation_enddate and a.Allocation_Percentage  =b.Allocation_Percentage         
+  LEFT JOIN [ADP].[MandatoryHoursConfig] MHC on MHC.EsaProjectID=A.Project_ID  and MHC.Isdeleted=0      
+  LEFT JOIN [AppVisionLens].esa.locationmaster LC on A.FTE_Location=LC.Assignment_Location       
+ GROUP BY a.Project_id,a.Associate_id,B.Allocation_Startdate        
+    ,b.Allocation_enddate,B.Allocation_Percentage  ,A.FTE_Location,LC.City,LC.country    
+    ,MHC.Mandatory_Hours      
+    
+IF OBJECT_ID(N'tempdb..#FTE_Final') IS NOT NULL    
+BEGIN DROP TABLE #FTE_Final END    
+    
+CREATE table #FTE_Final(            
+Project_ID Char(15) Not Null,          
+associate_id char(15),        
+Allocation_Startdate datetime,        
+Allocation_Enddate datetime,        
+Allocation_Percentage decimal(10,4),        
+ESA_FTE_Count Decimal(10,4),        
+Available_Hours  Decimal(10,2)         
+)        
+      
+INSERT INTO #FTE_Final           
+ SELECT  DISTINCT      
+  A.Project_ID        
+  ,A.Associate_id        
+  ,A.Allocation_Startdate        
+  ,A.Allocation_Enddate        
+  ,A.Allocation_Percentage        
+  ,sum(A.ESA_FTE_Count) AS ESA_FTE_Count, sum(A.Available_Hours)       
+ FROM #FTE_Cal A        
+ GROUP BY a.Project_ID        
+    ,A.Associate_id        
+    ,A.Allocation_Startdate        
+    ,A.Allocation_Enddate        
+    ,A.Allocation_Percentage    
+     
+IF OBJECT_ID(N'tempdb..#FTE_count_Loc') IS NOT NULL    
+BEGIN DROP TABLE #FTE_count_Loc END    
+    
+CREATE table #FTE_count_Loc(          
+Project_ID Char(15) Not Null,       
+associate_id char(15),        
+Allocation_Startdate datetime,        
+Allocation_Enddate datetime,        
+Allocation_Percentage decimal(10,4),        
+Workdays numeric,        
+FTE_LOCATION_CUR nvarchar(20),        
+HOLIDAY numeric,        
+Diff numeric         
+)        
+     
+INSERT INTO #FTE_count_Loc          
+ SELECT DISTINCT     
+T.EsaProjectID  ,      
+GA.[Associate_ID]  ,      
+GA.[Allocation_Start_Date],      
+GA.[Allocation_End_Date],      
+GA.[Allocation_Percentage],      
+@WorkdAYS,    
+ga.LOCATION        
+,Count(holiday)        
+,ISNULL((@WorkdAYS-Count(holiday)), 0)        
+FROM [ADPR].[Input_Data_AssociateRAW] T          
+ LEFT JOIN [AppVisionLens].esa.Projects GP ON CONVERT(VARCHAR, GP.ID) = T.EsaProjectID        
+ --LEFT OUTER JOIN [Adp].[CentralRepository_ActiveAllocations] GA ON T.EsaProjectID = GA.Project_ID      
+  LEFT OUTER JOIN #CentralRepository_LatestAllocation GA ON T.EsaProjectID = GA.Project_ID          
+  
+ LEFT join #HOLIDAYLIST HL on GA.Location = HL.Location and holiday between @StartDate and @EndDate        
+ WHERE ga.[Allocation_Start_Date] < @StartDate AND ga.[Allocation_End_Date]>=@StartDate       
+ GROUP BY T.EsaProjectID ,GA.[Associate_ID],GA.[Allocation_Start_Date],      
+ GA.[Allocation_End_Date],GA.[Allocation_Percentage],GA.location       
+     
+IF OBJECT_ID(N'tempdb..#FTE_count_Cal') IS NOT NULL    
+BEGIN DROP TABLE #FTE_count_Cal END    
+       
+CREATE table #FTE_count_Cal(            
+Project_ID Char(15) Not Null,        
+associate_id char(15),        
+Allocation_Startdate datetime,            
+Allocation_Enddate datetime,          
+Allocation_Percentage decimal(10,4),            
+FTE_Location nvarchar(20)  ,       
+FTE_City nvarchar(40)  ,      
+FTE_Country nvarchar(40) ,      
+FTE_Percentage Decimal(10,4),             
+ESA_FTE_Count Decimal(10,4),         
+Available_Hours decimal(10,2))        
+      
+INSERT INTO  #FTE_count_Cal      
+        
+SELECT DISTINCT A.Project_ID,A.associate_id ,A.Allocation_Startdate ,          
+A.Allocation_Enddate ,A.Allocation_Percentage ,     
+A.FTE_LOCATION_CUR,Ltrim(Rtrim(LC.City)) as 'City',Ltrim(Rtrim(LC.country)) as country,    
+ISNULL(SUM(Workdays / (CONVERT(DECIMAL(5, 2), @WorkdAYS)) * Allocation_Percentage), 0) AS FTE_Percentage,        
+ISNULL(SUM((Workdays / CONVERT(DECIMAL(5, 2),@WorkdAYS)) * Allocation_Percentage) / 100, 0) AS ESA_FTE_Count,     
+CASE WHEN isnull(MHC.Mandatory_Hours,0)=0      
+  THEN      
+  ISNULL(SUM(A.Diff * A.Allocation_Percentage *     
+  CASE WHEN Ltrim(Rtrim(LC.country))='IND' AND Ltrim(Rtrim(LC.City)) NOT IN ('Kolkata','Noida')    
+  THEN     
+  @IndiaHours ELSE @NonIndiaHours END)/100 , 0)       
+  ELSE      
+   ISNULL(SUM(A.Diff * A.Allocation_Percentage * MHC.Mandatory_Hours)/100 , 0)          
+   END As Available_Hours       
+FROM  #FTE_count_Loc A     
+LEFT JOIN [AppVisionLens].esa.locationmaster LC on A.FTE_LOCATION_CUR=LC.Assignment_Location      
+LEFT JOIN [ADP].[MandatoryHoursConfig] MHC on MHC.EsaProjectID=A.Project_ID  and MHC.Isdeleted=0        
+GROUP BY  A.Project_ID,A.associate_id ,A.Allocation_Startdate ,           
+A.Allocation_Enddate ,A.Allocation_Percentage ,A.FTE_LOCATION_CUR,LC.City,LC.Country,MHC.Mandatory_Hours       
+    
+IF OBJECT_ID(N'tempdb..#FTE_count') IS NOT NULL    
+BEGIN DROP TABLE #FTE_count END    
+    
+CREATE table #FTE_count          
+(           
+Project_ID Char(15) Not Null,        
+associate_id char(15),        
+Allocation_Startdate datetime,        
+Allocation_Enddate datetime,          
+Allocation_Percentage decimal(10,4),        
+ESA_FTE_Count Decimal(10,4),        
+Available_Hours  Decimal(10,2)        
+)        
+       
+INSERT INTO  #FTE_count           
+SELECT DISTINCT Project_ID,associate_id ,Allocation_Startdate ,    
+Allocation_Enddate ,Allocation_Percentage,SUM(ESA_FTE_Count), SUM(Available_Hours)     
+FROM #FTE_count_Cal  GROUP BY Project_ID,associate_id ,Allocation_Startdate ,    
+Allocation_Enddate ,Allocation_Percentage     
+    
+IF OBJECT_ID(N'tempdb..#FTE_ENDATE') IS NOT NULL    
+BEGIN DROP TABLE #FTE_ENDATE END    
+    
+ CREATE Table #FTE_ENDATE(          
+Id int not null identity(1,1),        
+Project_ID Char(15) Not Null,            
+Associate_id  varchar(10),            
+Allocation_Startdate datetime,            
+Allocation_Enddate datetime,            
+Allocation_Percentage decimal(10,4),            
+FTE_Location_END nvarchar(20)            
+)        
+        
+INSERT INTO #FTE_ENDATE           
+ SELECT DISTINCT        
+  T.EsaProjectID        
+  ,crs.Associate_ID        
+  ,crs.Allocation_Start_Date        
+  ,crs.Allocation_End_Date        
+  ,crs.Allocation_Percentage        
+  ,crs.Location        
+ FROM [ADPR].[Input_Data_AssociateRAW] T          
+ LEFT JOIN [AppVisionLens].esa.Projects GP ON CONVERT(VARCHAR, GP.ID) = T.EsaProjectID        
+ LEFT JOIN [Adp].[CentralRepository_Allocation] CRS ON CONVERT(VARCHAR, GP.ID) = CRS.[Project_ID]           
+ WHERE (CRS.Allocation_End_Date >= @StartDate  AND CRS.Allocation_End_Date <= @EndDate)     
+    
+ IF OBJECT_ID(N'tempdb..#Associate_endate_WeekDays') IS NOT NULL    
+BEGIN DROP TABLE #Associate_endate_WeekDays END    
+    
+ CREATE TABLE #Associate_endate_WeekDays(        
+DateList DATE,        
+DayWeek VARCHAR(100)        
+)     
+    
+ IF OBJECT_ID(N'tempdb..#Associate__endate_diff_loc') IS NOT NULL    
+BEGIN DROP TABLE #Associate__endate_diff_loc END    
+    
+CREATE table #Associate__endate_diff_loc(        
+Project_id Char(15) Not Null,            
+Associate_id varchar(20),            
+Allocation_Startdate datetime,            
+Allocation_Enddate datetime,            
+Allocation_Percentage decimal(10,4),           
+FTE_Location_END nvarchar(20),    
+Workdays_loc int,           
+Holidays_end int)        
+        
+DECLARE @id_first_1 int           
+DECLARE @id_last_1 int        
+DECLARE @id_first_Date_1 date            
+DECLARE @id_first_Date_2 date            
+DECLARE @As_Datepart1_1 INT           
+DECLARE @da_1 varchar           
+DECLARE @As_Datepart2_1 INT           
+DECLARE @As_Datepart3_1 INT           
+DECLARE @AL_Date_1 date            
+DECLARE @AL_Date_2 date           
+DECLARE @AssociateId_1 varchar(10)          
+DECLARE @Project_id_1 Char(15)           
+DECLARE @Allocation_startdate1 datetime           
+DECLARE @Allocation_enddate1 datetime           
+DECLARE @allocation_Percentage  decimal(10,4)        
+DECLARE @FTE_Location_END nvarchar(20)        
+        
+SET @id_first_1 = (SELECT MIN(id) FROM #FTE_ENDATE)           
+SET @id_last_1 = (SELECT  MAX(id) FROM #FTE_ENDATE)        
+    
+WHILE(@id_last_1>=@id_first_1)           
+BEGIN        
+        
+SET @id_first_Date_1 = (SELECT Allocation_Enddate FROM #FTE_ENDATE        
+ WHERE Id = @id_first_1)      
+        
+SET @id_first_Date_2 = (SELECT Allocation_Startdate FROM #FTE_ENDATE        
+ WHERE Id = @id_first_1)        
+       
+SET @AL_Date_1 = @id_first_Date_1        
+SET @AL_Date_2 = @id_first_Date_2        
+       
+SET @AssociateId_1 = (SELECT Associate_id FROM #FTE_ENDATE        
+ WHERE Id = @id_first_1)       
+ SET @Project_id_1 = (SELECT Project_ID FROM #FTE_ENDATE        
+ WHERE Id = @id_first_1 AND Associate_id = @AssociateId_1)        
+        
+SET @Allocation_startdate1 = (SELECT Allocation_Startdate FROM #FTE_ENDATE        
+ WHERE Id = @id_first_1 AND Associate_id = @AssociateId_1)        
+        
+SET @Allocation_enddate1 = (SELECT Allocation_Enddate FROM #FTE_ENDATE        
+  WHERE Id = @id_first_1 AND Associate_id = @AssociateId_1)        
+        
+SET @allocation_Percentage = (SELECT Allocation_Percentage FROM #FTE_ENDATE        
+ WHERE Id = @id_first_1 AND Associate_id = @AssociateId_1)        
+           
+SET @FTE_Location_END =  (SELECT FTE_Location_END FROM #FTE_ENDATE        
+ WHERE Id = @id_first_1 AND Associate_id = @AssociateId_1)        
+    
+SET @As_Datepart1_1 = DATEPART(dd, @StartDate)           
+SET @As_Datepart2_1 = DATEPART(dd, @id_first_Date_1)         
+SET @As_Datepart3_1 = DATEPART(dd, @id_first_Date_2)        
+        
+IF @Allocation_startdate1 >= @StartDate            
+BEGIN           
+WHILE (@As_Datepart2_1 >= @As_Datepart3_1) -- datepart2 allocat enddate || datepart3 allocat startdate          
+BEGIN            
+INSERT INTO #Associate_endate_WeekDays           
+ SELECT @AL_Date_2,DATENAME(dw, @AL_Date_2)            
+ SELECT @AL_DATE_2 = DATEADD(DAY, 1, @AL_Date_2),    
+ @As_Datepart3_1 = @As_Datepart3_1 + 1           
+END           
+END     
+ELSE BEGIN           
+WHILE (@As_Datepart2_1 >= @As_Datepart1_1)--- datepart2 : allocation enda date || datepart 1 : report startdate           
+BEGIN            
+INSERT INTO #Associate_endate_WeekDays            
+ SELECT @AL_Date_1,DATENAME(dw, @AL_Date_1)        
+ SELECT @AL_DATE_1 = DATEADD(DAY, -1, @AL_DATE_1),    
+ @As_Datepart1_1 = @As_Datepart1_1 + 1           
+END            
+END           
+DELETE FROM #Associate_endate_WeekDays WHERE DayWeek IN ('Saturday', 'Sunday')      
+INSERT INTO #Associate__endate_diff_loc            
+ SELECT  DISTINCT      
+  @Project_id_1        
+  ,@AssociateId_1        
+  ,@Allocation_startdate1        
+  ,@Allocation_enddate1        
+  ,@allocation_Percentage        
+   ,@FTE_Location_END        
+  ,(SELECT COUNT(1) FROM #Associate_endate_WeekDays)        
+  ,(SELECT count(holiday) As 'Holidays' from  #HOLIDAYLIST         
+where Location=@FTE_Location_END and  holiday     
+BETWEEN @Allocation_startdate1 AND  @Allocation_enddate1)        
+        
+SET @id_first_1 = @id_first_1 + 1            
+TRUNCATE TABLE #Associate_endate_WeekDays            
+END     
+    
+IF OBJECT_ID(N'tempdb..#Associate__endate_diff') IS NOT NULL    
+BEGIN DROP TABLE #Associate__endate_diff END    
+    
+CREATE table #Associate__endate_diff(           
+Project_id Char(15) Not Null,            
+Associate_id varchar(20),    
+Allocation_Startdate datetime,            
+Allocation_Enddate datetime,            
+Allocation_Percentage decimal(10,4),          
+FTE_Location_END nvarchar(20),         
+Workdays_diff  int,           
+Workdays_Loc_end int)        
+        
+Insert into #Associate__endate_diff           
+select DISTINCT Project_id , Associate_id, Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,FTE_Location_END ,      
+Workdays_loc,Isnull(Workdays_loc-Holidays_end,0)  from #Associate__endate_diff_loc     
+    
+IF OBJECT_ID(N'tempdb..#FTE_endate_Cal') IS NOT NULL    
+BEGIN DROP TABLE #FTE_endate_Cal END    
+    
+CREATE table #FTE_endate_Cal(         
+Project_ID Char(15) Not Null,            
+Associate_id  varchar(10),           
+Allocation_Startdate datetime,           
+Allocation_Enddate datetime,            
+Allocation_Percentage decimal(10,4),         
+FTE_Location nvarchar(20)  ,       
+FTE_City nvarchar(40)  ,        
+FTE_Country nvarchar(40) ,          
+Days_different numeric,            
+FTE_Percentage decimal(10,4),            
+ESA_FTE_Count Decimal(10,4),            
+Available_Hours Decimal(10,2))        
+        
+INSERT INTO #FTE_endate_Cal           
+ SELECT  DISTINCT      
+  a.Project_id        
+  ,A.Associate_id        
+  ,A.Allocation_Startdate        
+  ,A.Allocation_Enddate        
+  ,A.Allocation_Percentage  , A.FTE_Location_END, Ltrim(Rtrim(LC.City)) as 'City',Ltrim(Rtrim(LC.country)) as country      
+  ,SUM(a.Workdays_diff)        
+  ,ISNULL(SUM((A.Workdays_diff / (CONVERT(DECIMAL(5, 2), @WorkdAYS))) * B.Allocation_Percentage), 0) AS FTE_Percentage        
+  ,ISNULL(SUM((A.Workdays_diff / CONVERT(DECIMAL(5, 2), @WorkdAYS)) * B.Allocation_Percentage) / 100, 0) AS ESA_FTE_Count        
+  ,CASE WHEN isnull(MHC.Mandatory_Hours,0)=0      
+  THEN      
+  ISNULL(SUM(A.Workdays_Loc_end * A.Allocation_Percentage * CASE WHEN Ltrim(Rtrim(LC.country))='IND' AND Ltrim(Rtrim(LC.City)) NOT IN ('Kolkata','Noida')    
+  THEN @IndiaHours ELSE @NonIndiaHours END)/100 , 0)       
+  ELSE      
+   ISNULL(SUM(A.Workdays_Loc_end * A.Allocation_Percentage * MHC.Mandatory_Hours)/100 , 0)          
+   END As Available_Hours       
+   FROM #Associate__endate_diff  A       
+LEFT JOIN [AppVisionLens].esa.locationmaster LC on A.FTE_Location_END=LC.Assignment_Location      
+LEFT JOIN [ADP].[MandatoryHoursConfig] MHC on MHC.EsaProjectID=A.Project_ID  and MHC.Isdeleted=0      
+LEFT JOIN #FTE_ENDATE B        
+  ON a.Associate_id = b.Associate_id        
+  AND a.Project_id = b.Project_ID        
+  AND A.Allocation_Startdate = b.Allocation_Startdate        
+  AND A.Allocation_Enddate = b.Allocation_Enddate        
+  AND A.Allocation_Percentage = b.Allocation_Percentage      
+ GROUP BY  a.Project_id,A.Associate_id,A.Allocation_Startdate        
+  ,A.Allocation_Enddate,A.Allocation_Percentage , A.FTE_Location_END, LC.City,LC.Country         
+  ,MHC.Mandatory_Hours     
+      
+IF OBJECT_ID(N'tempdb..#FTE_End_Final') IS NOT NULL    
+BEGIN DROP TABLE #FTE_End_Final END    
+      
+ CREATE table #FTE_End_Final(           
+Project_ID Char(15) Not Null,           
+associate_id char(15),           
+Allocation_Startdate datetime,            
+Allocation_Enddate datetime,            
+Allocation_Percentage decimal(10,4),            
+ESA_FTE_Count Decimal(10,4),            
+Available_Hours Decimal(10,2))        
+        
+INSERT INTO #FTE_End_Final            
+ SELECT  DISTINCT      
+  A.Project_ID        
+  ,A.Associate_id        
+  ,A.Allocation_Startdate        
+  ,A.Allocation_Enddate        
+  ,A.Allocation_Percentage        
+  ,SUM(A.ESA_FTE_Count) AS ESA_FTE_Count, sum(A.Available_Hours)        
+ FROM #FTE_endate_Cal A        
+ GROUP BY a.Project_ID        
+    ,A.Associate_id        
+    ,A.Allocation_Startdate        
+    ,A.Allocation_Enddate        
+    ,A.Allocation_Percentage     
+    
+IF OBJECT_ID(N'tempdb..#FTE_BM') IS NOT NULL    
+BEGIN DROP TABLE #FTE_BM END    
+    
+CREATE table #FTE_BM(        
+Project_ID char (50),        
+associate_id char (50),        
+Allocation_Startdate  datetime,        
+Allocation_Enddate  datetime,        
+Allocation_Percentage  decimal (10,2),        
+ESA_FTE_Count  decimal (10,2),          
+Available_Hours decimal (10,2))     
+    
+IF OBJECT_ID(N'tempdb..#FTE_END_Future_LOC') IS NOT NULL BEGIN DROP TABLE #FTE_END_Future_LOC END    
+CREATE table #FTE_END_Future_LOC(           
+Project_ID Char(15) Not Null,            
+associate_id char(15),            
+Allocation_Startdate datetime,          
+Allocation_Enddate datetime,           
+Allocation_Percentage decimal(10,4),           
+Workdays numeric,               
+FTE_LOCATION_CUR nvarchar(20),                
+HOLIDAY numeric,                
+Diff numeric)        
+        
+INSERT into  #FTE_END_Future_LOC            
+ SELECT T.EsaProjectID,crs.Associate_ID, crs.Allocation_Start_Date,crs.Allocation_End_Date,crs.Allocation_Percentage--ISNULL(Sum(crs.Allocation_Percentage /100),0)         
+ ,@WorkdAYS          
+  ,CRS.Location          
+  ,Count(holiday)          
+  ,ISNULL((@WorkdAYS-Count(holiday)), 0) FROM  [ADPR].[Input_Data_AssociateRAW] T            
+left join [Adp].[CentralRepository_Allocation] CRS ON T.EsaProjectID = CRS.Project_ID            
+LEFT join #HOLIDAYLIST HL on CRS.Location = HL.Location and holiday between @StartDate and @EndDate               
+where  crs.Allocation_Start_Date<= @StartDate AND   CRS.Allocation_End_Date BETWEEN --DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0)      
+DATEADD(dd, 1, @EndDate)  and GETDATE()-1          
+GROUP BY T.EsaProjectID,crs.Associate_ID,crs.Allocation_Start_Date,crs.Allocation_End_Date,crs.Allocation_Percentage ,CRS.Location          
+ --------------        
+    IF OBJECT_ID(N'tempdb..#FTE_END_Future_CAL_A') IS NOT NULL BEGIN DROP TABLE #FTE_END_Future_CAL_A END    
+CREATE table #FTE_END_Future_CAL_A(         
+Project_ID Char(15) Not Null,          
+associate_id char(15),                
+Allocation_Startdate datetime,          
+Allocation_Enddate datetime,                
+Allocation_Percentage decimal(10,4),         
+FTE_Location nvarchar(20)  ,        
+FTE_City nvarchar(40)  ,        
+FTE_Country nvarchar(40)  ,            
+FTE_Percentage Decimal(10,4),                 
+ESA_FTE_Count Decimal(10,4))          
+          
+Insert into  #FTE_END_Future_CAL_A        
+          
+SELECT Project_ID,associate_id ,Allocation_Startdate ,Allocation_Enddate ,Allocation_Percentage  , A.FTE_LOCATION_CUR,Ltrim(Rtrim(LC.City)) as 'City',Ltrim(Rtrim(LC.country)) as country        
+,ISNULL(SUM(Workdays / (CONVERT(DECIMAL(5, 2), @WorkdAYS)) * Allocation_Percentage), 0) AS FTE_Percentage,                
+ISNULL(SUM((Workdays / CONVERT(DECIMAL(5, 2),@WorkdAYS)) * Allocation_Percentage) / 100, 0) AS ESA_FTE_Count               
+FROM  #FTE_END_Future_LOC  A          
+ left join [AppVisionLens].esa.locationmaster LC on A.FTE_LOCATION_CUR=LC.Assignment_Location            
+group by Project_ID,associate_id ,Allocation_Startdate ,Allocation_Enddate ,Allocation_Percentage , FTE_LOCATION_CUR ,LC.City ,LC.country,Workdays,Diff           
+        
+IF OBJECT_ID(N'tempdb..#FTE_END_Future_CAL') IS NOT NULL BEGIN DROP TABLE #FTE_END_Future_CAL END    
+     
+CREATE table #FTE_END_Future_CAL(               
+Project_ID Char(15) Not Null,               
+associate_id char(15),                
+Allocation_Startdate datetime,                
+Allocation_Enddate datetime,                
+Allocation_Percentage decimal(10,4),          
+FTE_Location nvarchar(20)  ,       
+FTE_City nvarchar(40)  ,        
+FTE_Country nvarchar(40) ,            
+FTE_Percentage Decimal(10,4),                
+ESA_FTE_Count Decimal(10,4),            
+Available_Hours decimal(10,2))          
+          
+Insert into  #FTE_END_Future_CAL        
+          
+SELECT A.Project_ID,A.associate_id ,A.Allocation_Startdate ,          
+          
+A.Allocation_Enddate ,A.Allocation_Percentage ,  A.FTE_location, A.FTE_city,A.FTE_Country,A.FTE_Percentage,  A.ESA_FTE_Count,         
+   CASE WHEN     
+   isnull(MHC.Mandatory_Hours,0)=0      
+  THEN      
+  ISNULL(SUM(B.Diff * B.Allocation_Percentage *    
+  CASE WHEN Ltrim(Rtrim(LC.country))='IND' AND Ltrim(Rtrim(LC.City)) NOT IN ('Kolkata','Noida')    
+  THEN     
+  @IndiaHours ELSE @NonIndiaHours END)/100 , 0)       
+  ELSE      
+   ISNULL(SUM(B.Diff * B.Allocation_Percentage * MHC.Mandatory_Hours)/100 , 0)       
+   END As Available_Hours           
+FROM  #FTE_END_Future_CAL_A A         
+        
+left join  #FTE_END_Future_LOC  B on A.associate_id=B.associate_id and A.Project_ID=B.Project_ID and A.Allocation_Startdate=B.Allocation_Startdate and A.Allocation_Enddate=B.Allocation_Enddate        
+  and A.Allocation_Percentage=B.Allocation_Percentage        
+   left join [ADP].[MandatoryHoursConfig] MHC on MHC.EsaProjectID=A.Project_ID  and MHC.Isdeleted=0     
+    LEFT JOIN [AppVisionLens].esa.locationmaster LC on A.FTE_Location=LC.Assignment_Location         
+  group by  A.Project_ID,A.associate_id ,A.Allocation_Startdate ,          
+          
+A.Allocation_Enddate ,A.Allocation_Percentage , A.FTE_location, A.FTE_city,A.FTE_Country       
+, A.FTE_Percentage,  A.ESA_FTE_Count ,MHC.Mandatory_Hours       
+      
+         
+--select * from #FTE_count_Loc where associate_id='423747'        
+        
+IF OBJECT_ID(N'tempdb..#FTE_END_Future') IS NOT NULL BEGIN DROP TABLE #FTE_END_Future END      
+CREATE table #FTE_END_Future          
+          
+(          
+          
+Project_ID Char(15) Not Null,          
+          
+associate_id char(15),          
+          
+Allocation_Startdate datetime,          
+          
+Allocation_Enddate datetime,          
+          
+Allocation_Percentage decimal(10,4),          
+          
+ESA_FTE_Count Decimal(10,4),          
+          
+Available_Hours  Decimal(10,2)          
+          
+)          
+          
+Insert into  #FTE_END_Future          
+          
+          
+SELECT Project_ID,associate_id ,Allocation_Startdate ,Allocation_Enddate ,Allocation_Percentage,sum(ESA_FTE_Count), sum(Available_Hours)     
+from #FTE_END_Future_CAL  group by Project_ID,associate_id ,Allocation_Startdate ,Allocation_Enddate ,Allocation_Percentage          
+     
+ IF OBJECT_ID(N'tempdb..#FTE_MID') IS NOT NULL BEGIN DROP TABLE #FTE_MID END           
+         
+CREATE table #FTE_MID        
+        
+(        
+        
+Id int not null identity(1,1),        
+        
+Project_ID Char(15) Not Null,        
+        
+Associate_id  nvarchar(10),        
+        
+Allocation_Startdate datetime,        
+        
+Allocation_Enddate datetime,        
+        
+Allocation_Percentage decimal(10,4),        
+        
+FTE_Location_MID nvarchar(20)        
+)        
+        
+INSERT into  #FTE_MID        
+        
+  SELECT T.EsaProjectID,crs.Associate_ID, crs.Allocation_Start_Date,crs.Allocation_End_Date,crs.Allocation_Percentage ,crs.location  FROM  [ADPR].[Input_Data_AssociateRAW] T         
+        
+--left join CTSINTBMVPCRSR1.CentralRepository_Report.dbo.vw_CentralRepository_Allocation CRS ON T.EsaProjectID = CRS.Project_ID        
+        
+left join [Adp].[CentralRepository_Allocation] CRS ON T.EsaProjectID = CRS.Project_ID        
+      
+      
+where (crs.Allocation_Start_Date> @StartDate and crs.Allocation_Start_Date<= @EndDate)  AND   CRS.Allocation_End_Date BETWEEN       
+--DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0) and GETDATE()-1        
+  DATEADD(dd, 1, @EndDate)  and GETDATE()-1        
+        
+--GROUP BY T.EsaProjectID,crs.Associate_ID        
+        
+--drop table #FTE_MID        
+        
+--select * from #FTE_MID where associate_id='178507'        
+IF OBJECT_ID(N'tempdb..#Associate_Mid_diff_loc') IS NOT NULL BEGIN DROP TABLE #Associate_Mid_diff_loc END              
+CREATE table #Associate_Mid_diff_loc          
+        
+(        
+        
+Project_id Char(15) Not Null,        
+        
+Associate_id nvarchar(20),        
+        
+Allocation_Startdate datetime,        
+        
+Allocation_Enddate datetime,        
+        
+Allocation_Percentage decimal(10,4),        
+        
+FTE_Location_mid nvarchar(20),          
+          
+Workdays_loc int,          
+          
+Holidays_mid int          
+        
+)        
+        
+DECLARE @firsdate DATETIME        
+DECLARE @lasdate DATETIME        
+DECLARE @minid int        
+DECLARE @maxid int        
+DECLARE @all_startdate datetime        
+DECLARE @AssociateId_1_mid nvarchar(10)        
+DECLARE @Difference int        
+        
+--DECLARE @Associate_WorkdAYS int        
+        
+DECLARE @Project_id_1_mid Char(15)         
+        
+DECLARE @Allocation_startdate1_mid datetime        
+        
+DECLARE @Allocation_enddate1_mid datetime        
+        
+DECLARE @allocation_Percentage_mid  decimal(10,4)        
+        
+          
+DECLARE @FTE_Location_MID nvarchar(20)          
+        
+SET @minid= (select min(id) from #FTE_MID  )        
+        
+--print @id_first_1        
+        
+SET @maxid= (select MAX (id) from #FTE_MID  )        
+        
+        
+WHILE(@maxid >=@minid)        
+        
+Begin        
+        
+set @all_startdate= (Select Allocation_Startdate from #FTE_MID WHERE Id=@minid)--04        
+        
+        
+        
+set @AssociateId_1_mid =(SELECT Associate_id from #FTE_MID WHERE Id=@minid)--        
+        
+set @Project_id_1_mid =(SELECT Project_ID from #FTE_MID WHERE Id=@minid and Associate_id=@AssociateId_1_mid)        
+        
+SET @Allocation_startdate1_mid= (SELECT Allocation_Startdate from #FTE_MID WHERE Id=@minid and Associate_id=@AssociateId_1_mid)        
+        
+SET @Allocation_enddate1_mid= (SELECT Allocation_Enddate from #FTE_MID WHERE Id=@minid and Associate_id=@AssociateId_1_mid)        
+        
+SET @allocation_Percentage_mid= (SELECT Allocation_Percentage from #FTE_MID WHERE Id=@minid and Associate_id=@AssociateId_1_mid)        
+        
+SET @FTE_Location_MID= (SELECT FTE_Location_MID from #FTE_MID WHERE Id=@minid and Associate_id=@AssociateId_1_mid)        
+        
+        
+SET @firsdate = @all_startdate        
+SET @lasdate = @EndDate        
+        
+        
+SELECT @Difference= (        
+select count(*) from(        
+SELECT  TOP (DATEDIFF(DAY, @firsdate, @lasdate) + 1)        
+    Date = DATEADD(DAY, ROW_NUMBER() OVER(ORDER BY a.object_id) - 1,@firsdate)        
+FROM    sys.all_objects a        
+    CROSS JOIN sys.all_objects b        
+) datename        
+where datename(dw,[Date]) not in ('Saturday','Sunday')  )        
+          
+--SELECT @Difference        
+--END        
+        
+--SELECT @Difference=        
+--   (DATEDIFF(dd, @firsdate, @lasdate) + 1)        
+--  -(DATEDIFF(wk, @lasdate, @lasdate) * 2)        
+--  -(CASE WHEN DATENAME(dw, @lasdate) = 'Sunday' THEN 1 ELSE 0 END)        
+--  -(CASE WHEN DATENAME(dw, @lasdate) = 'Saturday' THEN 1 ELSE 0 END)          
+        
+--SELECT @Difference        
+        
+        
+INSERT INTO  #Associate_Mid_diff_loc VALUES(         
+@Project_id_1_mid,@AssociateId_1_mid,@Allocation_startdate1_mid,@Allocation_enddate1_mid,@allocation_Percentage_mid, @FTE_Location_MID,@Difference,        
+(SELECT count(holiday) As 'Holidays' from  #HOLIDAYLIST           
+where Location=@FTE_Location_MID and  holiday BETWEEN @Allocation_startdate1_mid AND  @Allocation_enddate1_mid) )        
+        
+SET @minid=@minid+1        
+        
+END        
+ --------        
+--drop TABLE #Associate_Mid_diff        
+        
+--select * from #Associate_Mid_diff where  associate_id='178507'        
+        
+IF OBJECT_ID(N'tempdb..#Associate_Mid_diff') IS NOT NULL BEGIN DROP TABLE #Associate_Mid_diff END        
+CREATE table #Associate_Mid_diff        
+          
+(          
+          
+          
+Project_id Char(15) Not Null,          
+          
+Associate_id varchar(20),          
+          
+Allocation_Startdate datetime,          
+          
+Allocation_Enddate datetime,          
+        
+Allocation_Percentage decimal(10,4),          
+      
+FTE_Location_MID nvarchar(20),      
+          
+Workdays_diff  int,          
+          
+Workdays_Loc_end int          
+          
+)          
+          
+Insert into #Associate_Mid_diff        
+          
+select  Project_id , Associate_id, Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,FTE_Location_MID, Workdays_loc,Isnull(Workdays_loc-Holidays_mid,0)  from #Associate_Mid_diff_loc          
+          
+-----        
+ IF OBJECT_ID(N'tempdb..#FTE_MID_Cal_A') IS NOT NULL BEGIN DROP TABLE #FTE_MID_Cal_A END       
+CREATE table #FTE_MID_Cal_A        
+        
+(         
+      
+Project_ID Char(15) Not Null,        
+        
+Associate_id  nvarchar(10),        
+        
+Allocation_Startdate datetime,        
+        
+Allocation_Enddate datetime,        
+        
+Allocation_Percentage decimal(10,4),        
+      
+FTE_Location nvarchar(20)  ,      
+      
+FTE_City nvarchar(40)  ,      
+      
+FTE_Country nvarchar(40)  ,      
+        
+Days_different numeric,        
+        
+FTE_Percentage decimal(10,4),        
+        
+ESA_FTE_Count Decimal(10,4)        
+        
+)        
+        
+INSERT INTO #FTE_MID_Cal_A        
+        
+SELECT a.Project_id,a.Associate_id,B.Allocation_Startdate,B.Allocation_Enddate,B.Allocation_Percentage,   A.FTE_Location_MID,Ltrim(Rtrim(LC.City)) as 'City',Ltrim(Rtrim(LC.country)) as country      
+        
+,sum(a.Workdays_diff), ISNULL(sum((A.Workdays_diff/(CONVERT(decimal(5,2),@WorkdAYS)))*B.Allocation_Percentage),0) As FTE_Percentage ,        
+      ISNULL(SUM((A.Workdays_diff/convert(decimal(5,2),@WorkdAYS))*B.Allocation_Percentage)/100,0) AS ESA_FTE_Count        
+        
+from #Associate_Mid_diff A        
+        
+LEFT JOIN #FTE_MID B on a.Associate_id=b.Associate_id and a.Project_id=b.Project_ID AND A.Allocation_Startdate=b.Allocation_Startdate AND        
+A.Allocation_Enddate=b.Allocation_Enddate AND A.Allocation_Percentage=b.Allocation_Percentage        
+      
+  left join [AppVisionLens].esa.locationmaster LC on A.FTE_Location_MID=LC.Assignment_Location      
+        
+        
+group BY a.Project_id,a.Associate_id,B.Allocation_Startdate,B.Allocation_Enddate,B.Allocation_Percentage,A.FTE_Location_MID,LC.City ,LC.country      
+,a.Workdays_diff        
+        
+--select * from #FTE_MID_Cal   where  associate_id='178507' project_id='1000256990' and        
+--select *from #Associate_Mid_diff        
+        
+-- drop table #FTE_endate_Cal        
+        
+---------------        
+        
+  IF OBJECT_ID(N'tempdb..#FTE_MID_Cal') IS NOT NULL BEGIN DROP TABLE #FTE_MID_Cal END      
+CREATE table #FTE_MID_Cal        
+          
+(           
+          
+Project_ID Char(15) Not Null,          
+          
+Associate_id  varchar(10),          
+          
+Allocation_Startdate datetime,          
+          
+Allocation_Enddate datetime,          
+          
+Allocation_Percentage decimal(10,4),          
+      
+FTE_Location nvarchar(20)  ,      
+      
+FTE_City nvarchar(40)  ,      
+      
+FTE_Country nvarchar(40) ,      
+          
+Days_different numeric,          
+          
+FTE_Percentage decimal(10,4),          
+          
+ESA_FTE_Count Decimal(10,4),          
+          
+Available_Hours Decimal(10,2)          
+          
+)          
+          
+INSERT INTO #FTE_MID_Cal          
+          
+ SELECT          
+  a.Project_id          
+  ,A.Associate_id          
+  ,A.Allocation_Startdate          
+  ,A.Allocation_Enddate          
+  ,A.Allocation_Percentage , A.FTE_location, A.FTE_city,A.FTE_Country         
+  ,A.Days_different          
+  ,A.FTE_Percentage          
+  ,A.ESA_FTE_Count          
+  ,CASE WHEN isnull(MHC.Mandatory_Hours,0)=0      
+  THEN      
+    ISNULL(SUM(B.Workdays_Loc_end * B.Allocation_Percentage *    
+  CASE WHEN Ltrim(Rtrim(LC.country))='IND' AND Ltrim(Rtrim(LC.City)) NOT IN ('Kolkata','Noida')    
+  THEN     
+  @IndiaHours ELSE @NonIndiaHours END)/100 , 0)       
+  ELSE      
+   ISNULL(SUM(B.Workdays_Loc_end * B.Allocation_Percentage * MHC.Mandatory_Hours)/100 , 0)       
+   END As Available_Hours       
+   FROM #FTE_MID_Cal_A  A               
+  left  JOIN #Associate_Mid_diff B   ON a.Associate_id = b.Associate_id          
+  AND a.Project_id = b.Project_ID  and A.Allocation_Startdate=B.Allocation_Startdate and A.Allocation_Enddate=B.Allocation_Enddate        
+  and A.Allocation_Percentage=B.Allocation_Percentage        
+  LEFT join [ADP].[MandatoryHoursConfig] MHC on MHC.EsaProjectID=A.Project_ID  and MHC.Isdeleted=0      
+  LEFT JOIN [AppVisionLens].esa.locationmaster LC on A.FTE_Location=LC.Assignment_Location               
+ GROUP BY  a.Project_id          
+  ,A.Associate_id          
+  ,A.Allocation_Startdate          
+  ,A.Allocation_Enddate          
+  ,A.Allocation_Percentage   , A.FTE_location, A.FTE_city,A.FTE_Country       
+  ,A.Days_different          
+  ,A.FTE_Percentage          
+  ,A.ESA_FTE_Count ,B.Workdays_Loc_end        
+  ,MHC.Mandatory_Hours      
+      
+     
+IF OBJECT_ID(N'tempdb..#FTE_MID_Final') IS NOT NULL BEGIN DROP TABLE #FTE_MID_Final END    
+CREATE table #FTE_MID_Final        
+        
+(        
+        
+Project_ID Char(15) Not Null,        
+        
+associate_id char(15),        
+        
+Allocation_Startdate datetime,        
+        
+Allocation_Enddate datetime,        
+        
+Allocation_Percentage decimal(10,4),        
+        
+ESA_FTE_Count Decimal(10,2),        
+Available_Hours Decimal(10,2)          
+        
+)        
+        
+INSERT INTO  #FTE_MID_Final        
+        
+SELECT A.Project_ID,A.Associate_id ,A. Allocation_Startdate,A.Allocation_Enddate,A.Allocation_Percentage, SUM(A.ESA_FTE_Count) AS ESA_FTE_Count, sum(A.Available_Hours)          
+from #FTE_MID_Cal A GROUP BY a.Project_ID ,A.Associate_id,A. Allocation_Startdate,A.Allocation_Enddate,A.Allocation_Percentage        
+    
+    
+IF(@JobType='Week')    
+BEGIN     
+ INSERT INTO #FTE_BM    
+  SELECT Distinct Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours        
+ FROM ((SELECT        
+   Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours       
+  FROM #FTE_count) UNION ALL (SELECT        
+ Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours        
+  FROM #FTE_Final) UNION ALL (SELECT        
+ Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours       
+  FROM #FTE_End_Final)) p      
+END    
+ELSE    
+ BEGIN    
+  INSERT INTO #FTE_BM        
+  SELECT Distinct Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours         
+  FROM (    
+  (SELECT Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours       
+  FROM #FTE_count)     
+  UNION ALL(SELECT Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours        
+  FROM #FTE_Final)     
+  UNION ALL (SELECT Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours    
+  FROM #FTE_END_Future)     
+  UNION ALL (SELECT Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours    
+  FROM #FTE_MID_Final)     
+  UNION ALL(SELECT Project_ID, associate_id,Allocation_Startdate,Allocation_Enddate,Allocation_Percentage,ESA_FTE_Count,Available_Hours       
+  FROM #FTE_End_Final)    
+  ) p      
+ END    
+   
+IF OBJECT_ID(N'tempdb..#Associalte_FinalAllocation') IS NOT NULL    
+BEGIN DROP TABLE #Associalte_FinalAllocation END    
+     
+CREATE table #Associalte_FinalAllocation(            
+Parent_Accountid Char(15),            
+Parent_AccountName varchar (100),            
+SBU varchar (50),            
+Vertical varchar (50),            
+SDM_ID char(15),            
+SDM_Name varchar (100),            
+SDD_ID char(15),            
+SDD_Name varchar (100),            
+Project_ID Char(15) Not Null,            
+associate_id char(15),           
+Allocation_Startdate datetime,           
+Allocation_Enddate datetime,            
+Allocation_Percentage decimal(10,4),            
+ESA_FTE_Count Decimal(10,4),            
+Available_Hours Decimal(10,2),            
+DE_Inscope varchar(50))        
+        
+INSERT INTO #Associalte_FinalAllocation           
+ SELECT DISTINCT        
+  C.ParentAccountID        
+  ,C.ParentAccountName        
+  ,C.PracticeOwner,C.ProjectOwningPractice,c.[PO ID],c.[PO Name],c.[DM ID],c.[DM Name]        
+  ,A.Project_ID ,A.associate_id,A.Allocation_Startdate,A.Allocation_Enddate,A.Allocation_Percentage,A.ESA_FTE_Count         
+  ,sum(A.Available_Hours)  As Available_Hours       
+  ,B.DE_Inscope        
+ FROM #FTE_BM A           
+ INNER JOIN [ADPR].[Input_Excel_Associate] B ON a.project_id = b.EsaProjectID        
+ INNER JOIN [ADPR].[Input_Data_AssociateRAW] C ON a.project_id = c.EsaProjectID AND C.OnBoardStatus='OnBoarded'        
+  GROUP by C.ParentAccountID,C.ParentAccountName,C.PracticeOwner,C.ProjectOwningPractice,    
+  c.[PO ID],c.[PO Name],c.[DM ID],c.[DM Name],A.Project_ID ,A.associate_id,A.Allocation_Startdate,    
+  A.Allocation_Enddate,A.Allocation_Percentage,A.ESA_FTE_Count,B.DE_Inscope       
+      
+    
+IF OBJECT_ID(N'tempdb..#Temp_BM_Applns') IS NOT NULL    
+BEGIN DROP TABLE #Temp_BM_Applns END    
+    
+SELECT DISTINCT AssociateID,AssociateName,Designation,Grade,Email,PassportNo,    
+PassPortIssueDate,PassportExpiryDate,IsActive,LastModifiedDate,Supervisor_ID,Supervisor_Name,JobCode,        
+Offshore_Onsite,Assignment_Location,City,[State],Country,    
+CASE WHEN ISNUMERIC(SUBSTRING(Grade, 2, 2)) = 1 THEN SUBSTRING(Grade, 2, 2)            
+ELSE NULL END AS UpdatedGrade INTO #Temp_BM_Applns FROM [AppVisionLens].ESA.Associates     
+    
+IF OBJECT_ID(N'tempdb..#Temp_BM_Applns_Below_M') IS NOT NULL    
+BEGIN DROP TABLE #Temp_BM_Applns_Below_M END    
+    
+Select * INTO #Temp_BM_Applns_Below_M FROM #Temp_BM_Applns WHERE updatedGrade > 50      
+    
+----------- Below M Grade Logic -------------    
+    
+IF OBJECT_ID(N'tempdb..#Associalte_Final_All') IS NOT NULL    
+BEGIN DROP TABLE #Associalte_Final_All END    
+    
+CREATE table #Associalte_Final_All(            
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),            
+SBU varchar (50),            
+Vertical varchar (50),            
+SDM_ID char(15),            
+SDM_Name varchar (100),           
+SDD_ID char(15),           
+SDD_Name varchar (100),           
+Project_ID Char(15) Not Null,           
+Project_Name varchar(100),           
+associate_id char(15),            
+Assciate_Name varchar(100),           
+Allocation_Startdate datetime,            
+Allocation_Enddate datetime,            
+Allocation_Percentage decimal(10,4),           
+ESA_FTE_Count Decimal(10,4),           
+Available_Hours Decimal(10,2),           
+DE_Inscope varchar(50),            
+Department_Name varchar(100),           
+Job_Code varchar(20),           
+Designation varchar(50))        
+        
+BEGIN        
+INSERT INTO #Associalte_Final_All            
+ SELECT DISTINCT        
+  AF.Parent_Accountid,AF.Parent_AccountName,AF.SBU,AF.Vertical,AF.SDM_ID,AF.SDM_Name,AF.SDD_ID,AF.SDD_Name,AF.Project_ID,PRS.Project_Name,AF.associate_id,AP.AssociateName,AF.Allocation_Startdate,        
+  AF.Allocation_Enddate,AF.Allocation_Percentage,AF.ESA_FTE_Count,AF.Available_Hours,AF.DE_Inscope ,CRS.[Dept_Name],CRS.[JobCode],CRS.[Designation]          
+ FROM #Associalte_FinalAllocation AF        
+ JOIN #Temp_BM_Applns_Below_M AP ON AF.Associate_id = ap.Associateid           
+ LEFT JOIN [Adp].[CentralRepository_Project] PRS ON AF.Project_ID = PRS.Project_id   
+ LEFT JOIN [Adp].[CentralRepository_Associate_Details] CRS ON AF.Associate_id = crs.Associate_ID        
+ ORDER BY Af.Associate_id DESC   
+   
+     
+ DELETE FROM #Associalte_Final_All where associate_id='323477'    
+   
+  
+  
+END    
+    
+IF OBJECT_ID(N'tempdb..#Allocatedassoc') IS NOT NULL    
+BEGIN DROP TABLE #Allocatedassoc END    
+    
+SELECT DISTINCT        
+ AF.associate_id,        
+ AF.Assciate_Name        
+ ,lg.UserID        
+ ,PM.EsaProjectID        
+ ,PM.ProjectName        
+ ,LG.ProjectID        
+ ,AF.Parent_Accountid as ParentCustomerID        
+ ,AF.Parent_AccountName as   ParentCustomername      
+ ,LG.IsNonESAAuthorized        
+ ,AF.DE_Inscope INTO #Allocatedassoc        
+FROM #Associalte_Final_All AF        
+LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM ON AF.Project_ID = PM.EsaProjectID   
+LEFT JOIN [AppVisionLens].AVL.MAS_LoginMaster LG ON PM.ProjectID = LG.ProjectID        
+AND AF.associate_id = lg.EmployeeID        
+LEFT JOIN [AppVisionLens].AVL.Customer CS ON PM.CustomerID = CS.CustomerID           
+WHERE CS.IsDeleted = '0' AND PM.IsDeleted = '0' --AND PA.IsActive = '1'    
+    
+IF OBJECT_ID(N'tempdb..#TEMPR') IS NOT NULL    
+BEGIN DROP TABLE #TEMPR END    
+    
+ SELECT DISTINCT        
+ LG.EmployeeID,        
+ LG.EmployeeName        
+ ,PM.EsaProjectID,        
+ PM.ProjectName        
+ ,lg.UserID        
+ ,LG.ProjectID        
+ ,LG.IsNonESAAuthorized       
+INTO #TEMPR        
+FROM [AppVisionLens].AVL.MAS_LoginMaster LG        
+JOIN #Temp_BM_Applns_Below_M APS ON LG.EmployeeID = APS.associateid        
+LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM ON LG.ProjectID = PM.ProjectID   
+--JOIN #Associalte_FinalAllocation FA ON FA.associate_id=LG.EmployeeID AND FA.Project_ID=PM.EsaProjectId --Fix  
+LEFT JOIN [ADPR].[Input_Data_AssociateRAW] AD ON PM.EsaProjectID = ad.EsaProjectID AND AD.OnBoardStatus='Onboarded'       
+LEFT JOIN [ADPR].[Input_Excel_Associate] B ON PM.EsaProjectID=b.EsaProjectID        
+WHERE LG.IsDeleted = '0' AND PM.IsDeleted = '0'        
+        
+DELETE  FROM #TEMPR WHERE EmployeeID='323477'    
+    
+IF OBJECT_ID(N'tempdb..#LoginAssociate') IS NOT NULL    
+BEGIN DROP TABLE #LoginAssociate END    
+    
+SELECT DISTINCT        
+ EmployeeID,EmployeeName        
+ ,EsaProjectID,ProjectName        
+ ,UserID        
+ ,ProjectID        
+ ,ParentCustomerID        
+ ,ParentCustomerName        
+ ,IsNonESAAuthorized        
+ ,DE_Inscope        
+ ,Dept_Name        
+ ,Jobcode        
+ ,Designation INTO #LoginAssociate        
+FROM (SELECT DISTINCT        
+  LG.EmployeeID,LG.EmployeeName        
+  ,LG.EsaProjectID,LG.ProjectName        
+  ,LG.UserID        
+  ,LG.ProjectID        
+  ,AF.Parent_Accountid as ParentCustomerID      
+  ,AF.Parent_AccountName  as ParentCustomerName      
+  ,LG.IsNonESAAuthorized        
+  ,AF.DE_Inscope ,       
+CRS.[Dept_Name],      
+CRS.[JobCode],      
+CRS.[Designation]       
+        
+ FROM #TEMPR LG        
+ JOIN #Temp_BM_Applns_Below_M APS ON LG.EmployeeID = APS.associateid        
+ LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM ON LG.ProjectID = PM.ProjectID  
+ JOIN [AppVisionLens].AVL.Customer CS ON PM.CustomerID = CS.CustomerID        
+ LEFT JOIN #Associalte_FinalAllocation AF ON PM.EsaProjectID = AF.Project_ID        
+ LEFT JOIN [Adp].[CentralRepository_Associate_Details] CRS ON LG.EmployeeID = crs.Associate_ID        
+ WHERE CS.IsDeleted = '0' AND PM.IsDeleted = '0') TMP     
+    
+ IF OBJECT_ID(N'tempdb..#Tempfin') IS NOT NULL    
+BEGIN DROP TABLE #Tempfin END    
+    
+ SELECT DISTINCT        
+ EmployeeID,EmployeeName        
+ ,UserID        
+ ,EsaProjectID,Projectname        
+ ,ProjectID        
+ ,ParentCustomerID        
+ ,ParentCustomerName        
+ ,IsNonESAAuthorized        
+ ,Dept_name        
+ ,Jobcode        
+ ,designation INTO #Tempfin        
+FROM #LoginAssociate A        
+WHERE NOT EXISTS (SELECT        
+associate_id,assciate_name        
+  ,UserID        
+  ,EsaProjectID,projectname        
+  ,ProjectID        
+  ,ParentCustomerID        
+  ,ParentCustomerName        
+  ,IsNonESAAuthorized      
+  ,DE_Inscope      
+ FROM #Allocatedassoc B        
+ WHERE a.EmployeeID = b.associate_id        
+ AND a.EsaProjectID = b.EsaProjectID)    
+    
+ INSERT INTO #Associalte_Final_All (Parent_Accountid, Parent_AccountName, SBU,Vertical,SDM_ID,SDM_Name,SDD_ID,SDD_Name ,Project_ID, Project_Name,associate_id, Assciate_Name,B.DE_Inscope, Department_Name,Job_Code, Designation)          
+ SELECT DISTINCT        
+  ParentCustomerID        
+  ,ParentCustomerName        
+  ,C.PracticeOwner,C.ProjectOwningPractice        
+  ,c.[PO ID],c.[PO Name],c.[DM ID],c.[DM Name]        
+  ,a.EsaProjectID,A.Projectname        
+  ,EmployeeID,EMployeeName        
+  ,B.DE_Inscope        
+  ,Dept_Name        
+  ,jobcode        
+  ,designation        
+ FROM #Tempfin A        
+ JOIN [ADPR].[Input_Excel_Associate] B        
+  ON a.EsaProjectID = b.EsaProjectID        
+  JOIN [ADPR].[Input_Data_AssociateRAW] C        
+  ON a.EsaProjectID = c.EsaProjectID AND C.OnBoardStatus='Onboarded'     
+  
+    
+     
+ IF OBJECT_ID(N'tempdb..#Loginmaster_associate') IS NOT NULL    
+BEGIN DROP TABLE #Loginmaster_associate END    
+    
+CREATE Table #Loginmaster_associate        
+(        
+EmployeeID varchar(15),   
+EmployeeName varchar(100),        
+UserID int ,        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+ProjectID int,        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+IsNonESAAuthorized bit,        
+)        
+        
+      
+        
+INSERT INTO #Loginmaster_associate        
+ SELECT DISTINCT        
+  EmployeeID,Employeename        
+  ,UserID        
+  ,EsaProjectID,projectname        
+  ,ProjectID        
+  ,ParentCustomerID        
+  ,ParentCustomerName        
+  ,IsNonESAAuthorized        
+ FROM #LoginAssociate          
+ UNION     
+ SELECT DISTINCT        
+  associate_id,assciate_name        
+  ,UserID        
+  ,EsaProjectID,projectname        
+  ,ProjectID        
+  ,ParentCustomerID        
+  ,ParentCustomerName        
+  ,IsNonESAAuthorized        
+ FROM #Allocatedassoc        
+      
+DELETE FROM #Loginmaster_associate WHERE EmployeeID='323477'    
+    
+IF OBJECT_ID(N'tempdb..#MPS_Effort_All') IS NOT NULL    
+BEGIN DROP TABLE #MPS_Effort_All END    
+    
+    
+CREATE Table #MPS_Effort_All(            
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+IsNonESAAuthorized bit,        
+App_Effort decimal (10,2),      
+Infra_Effort decimal(10,2)    
+)     
+INSERT INTO #MPS_Effort_All    
+ SELECT   DISTINCT      
+  Parent_Accountid        
+  ,Parent_AccountName        
+  ,EsaProjectID,Projectname        
+  ,EmployeeID,EmployeeName        
+  ,IsNonESAAuthorized        
+  ,ISNULL(SUM(C.Hours),0) As 'App_Effort'     
+  ,ISNULL(SUM(D.Hours),0) As 'Infra_Effort'     
+  FROM #Loginmaster_associate tmp        
+ LEFT JOIN [AppVisionLens].AVL.TM_PRJ_Timesheet B        
+  ON tmp.UserID = b.SubmitterId        
+  AND B.TimesheetDate BETWEEN @StartDate and @EndDate        
+ LEFT JOIN [AppVisionLens].AVL.TM_TRN_TimesheetDetail C  ON b.TimesheetId = C.TimesheetId AND B.ProjectID=c.ProjectId         
+ LEFT join [AppVisionLens].AVL.TM_TRN_InfraTimesheetDetail D on b.TimesheetId = D.TimesheetId AND B.ProjectID=d.ProjectId          
+ GROUP BY Parent_Accountid        
+    ,Parent_AccountName        
+    ,EsaProjectID,Projectname        
+    ,EmployeeID,EmployeeName        
+    ,IsNonESAAuthorized     
+    
+IF OBJECT_ID(N'tempdb..#MPS_Effort_Workitem') IS NOT NULL    
+BEGIN DROP TABLE #MPS_Effort_Workitem END    
+    
+CREATE Table #MPS_Effort_Workitem  (        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+IsNonESAAuthorized bit,        
+Workitem_Effort decimal (10,2),        
+)        
+        
+INSERT INTO #MPS_Effort_Workitem        
+        
+ SELECT  DISTINCT       
+  Parent_Accountid        
+  ,Parent_AccountName        
+  ,EsaProjectID,Projectname        
+  ,EmployeeID,EmployeeName        
+  ,IsNonESAAuthorized        
+  ,ISNULL(SUM(D.Hours),0) As 'Workitem_effort'        
+   FROM #Loginmaster_associate tmp        
+ LEFT JOIN [AppVisionLens].AVL.TM_PRJ_Timesheet B        
+  ON tmp.UserID = b.SubmitterId        
+  AND B.TimesheetDate BETWEEN @StartDate AND @enddate        
+  LEFT join [AppVisionLens].ADM.TM_TRN_WorkItemTimesheetDetail D on b.TimesheetId = D.TimesheetId --AND B.ProjectID=d.ProjectId          
+      
+ GROUP BY Parent_Accountid        
+    ,Parent_AccountName        
+    ,EsaProjectID,Projectname        
+    ,EmployeeID,EmployeeName        
+    ,IsNonESAAuthorized        
+       
+    
+    
+IF OBJECT_ID(N'tempdb..#MPS_Effort') IS NOT NULL    
+BEGIN DROP TABLE #MPS_Effort END     
+ CREATE Table #MPS_Effort        
+(        
+        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+IsNonESAAuthorized bit,        
+MPS_Effort decimal (10,2),        
+)        
+        
+INSERT INTO #MPS_Effort        
+        
+select  DISTINCT        
+  A.Parent_Accountid        
+  ,A.Parent_AccountName        
+  ,A.EsaProjectID,A.Projectname        
+  ,A.EmployeeID,A.EmployeeName        
+  ,A.IsNonESAAuthorized ,Isnull(sum(AP.App_Effort+AP.Infra_Effort),0) as 'MPS'        
+  FROM #Loginmaster_associate A        
+   LEFT JOIN #MPS_Effort_All AP on a.EmployeeID=AP.employeeid and  A.EsaProjectID=AP.EsaProjectID          
+group by  A.Parent_Accountid        
+  ,A.Parent_AccountName        
+  ,A.EsaProjectID,A.Projectname        
+  ,A.EmployeeID,A.EmployeeName        
+  ,A.IsNonESAAuthorized       
+      
+        
+ IF OBJECT_ID(N'tempdb..#MAS_Effort') IS NOT NULL    
+BEGIN DROP TABLE #MAS_Effort END       
+CREATE Table #MAS_Effort        
+(        
+        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+IsNonESAAuthorized bit,        
+MAS_Effort decimal (10,2)        
+)        
+INSERT INTO #MAS_Effort        
+        
+ SELECT DISTINCT        
+  Parent_Accountid        
+  ,Parent_AccountName        
+  ,A.EsaProjectID,A.Projectname        
+  ,A.EmployeeID,A.EmployeeName        
+  ,IsNonESAAuthorized        
+  ,ISNULL(SUM(b.Hours), 0) AS 'MAS_Effort'        
+ FROM #Loginmaster_associate A        
+LEFT JOIN [DiscoverEDS].[EDS].[TimesheetDetail_All_Enhancement_AD] B        
+  ON a.EmployeeID = b.[SubmitterID]        
+  AND a.EsaProjectID = b.[ESAProjectID]        
+  AND B.[TimesheetSubmissionDate] BETWEEN @StartDate AND @EndDate      
+ GROUP BY Parent_Accountid        
+    ,Parent_AccountName        
+    ,A.EsaProjectID,A.Projectname        
+    ,A.EmployeeID,A.EmployeeName        
+    ,IsNonESAAuthorized        
+        
+        
+ IF OBJECT_ID(N'tempdb..#Total_Effort') IS NOT NULL    
+BEGIN DROP TABLE #Total_Effort END         
+        
+CREATE Table #Total_Effort        
+(        
+        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+MPS_Effort decimal (10,2),        
+Work_Profile_AD decimal (10,2),        
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2)        
+)         
+INSERT INTO #Total_Effort            
+ SELECT DISTINCT        
+  A.Parent_Accountid        
+  ,A.Parent_AccountName        
+  ,A.EsaProjectID,A.Projectname        
+  ,A.EmployeeID,A.EmployeeName        
+  ,SUM(ISNULL(MP.MPS_Effort, 0))        
+  ,SUM(ISNULL(WI.Workitem_Effort, 0))      
+  ,SUM(ISNULL(MA.MAS_Effort, 0))        
+  ,SUM(ISNULL(MP.MPS_Effort, 0) + ISNULL(WI.Workitem_Effort, 0)+ ISNULL(MA.MAS_Effort, 0)) 'Actual_Effort'        
+ FROM #Loginmaster_associate A            
+ LEFT JOIN #MPS_Effort MP ON a.EmployeeID = MP.EmployeeID AND a.EsaProjectID = mp.EsaProjectID            
+ LEFT JOIN #MAS_Effort MA ON a.EmployeeID = MA.EmployeeID AND a.EsaProjectID = mA.EsaProjectID      
+ LEFT JOIN #MPS_Effort_Workitem WI ON a.EmployeeID=WI.EmployeeID AND a.EsaProjectID=wi.EsaProjectID     
+ GROUP BY A.Parent_Accountid        
+    ,A.Parent_AccountName        
+    ,A.EsaProjectID,A.Projectname        
+    ,A.EmployeeID,A.EmployeeName      
+     
+IF OBJECT_ID(N'tempdb..#Associate_FTE_Hours') IS NOT NULL    
+BEGIN DROP TABLE #Associate_FTE_Hours END     
+    
+CREATE table #Associate_FTE_Hours(Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+Avaialble_FTE_Below_M decimal (10,4),        
+Available_Hours decimal (10,2))        
+        
+INSERT INTO #Associate_FTE_Hours           
+ SELECT DISTINCT        
+  Parent_Accountid        
+  ,Parent_AccountName        
+  ,Project_ID,A.Project_Name        
+  ,associate_id        
+  ,A.Assciate_Name        
+  ,ISNULL(SUM(ESA_FTE_Count), 0)        
+  ,ISNULL(SUM(Available_Hours), 0)        
+ FROM #Associalte_Final_All A         
+ GROUP BY Parent_Accountid        
+    ,Parent_AccountName        
+    ,Project_ID,A.Project_Name        
+    ,associate_id,A.Assciate_Name       
+    
+IF OBJECT_ID(N'tempdb..#Associate_Summary') IS NOT NULL    
+BEGIN DROP TABLE #Associate_Summary END     
+    
+CREATE Table #Associate_Summary        
+(Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+SBU varchar (50),        
+Vertical varchar (50),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+Avaialble_FTE_Below_M decimal (10,4),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),       
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Associate_Compliance decimal (10,2)        
+)        
+        
+  
+INSERT INTO #Associate_Summary           
+ SELECT DISTINCT        
+  af.Parent_Accountid        
+  ,af.Parent_AccountName         
+  ,BU.PracticeOwner,Bu.ProjectOwningPractice        
+  ,af.EsaProjectID,AF.Projectname        
+  ,af.EmployeeID,AF.EmployeeName        
+  ,ISNULL((Avaialble_FTE_Below_M), 0) AS ESA_FTE        
+  ,ISNULL((Available_Hours), 0)        
+  AS Available_hours        
+  ,ISNULL((B.MPS_Effort), 0)      
+  ,ISNULL((B.Work_Profile_AD), 0)      
+  ,ISNULL((B.MAS_Effort), 0)        
+  ,ISNULL((B.Actual_Effort), 0)        
+  ,ISNULL(((Actual_Effort / NULLIF(Available_Hours, 0)) * 100), 0)        
+ FROM #Associate_FTE_Hours AF         
+ JOIN [ADPR].[Input_Data_AssociateRAW] BU ON af.EsaProjectID = bU.EsaProjectID AND BU.OnBoardStatus='Onboarded'     
+ LEFT JOIN #Total_Effort B ON IsNull(af.Parent_Accountid,0) = IsNull(b.Parent_Accountid,0)            
+  AND af.EsaProjectID = b.EsaProjectID        
+  AND af.EmployeeID = b.EmployeeID      
+    
+  IF OBJECT_ID(N'tempdb..#AssociateSummarytmp') IS NOT NULL    
+BEGIN DROP TABLE #AssociateSummarytmp END    
+    
+  SELECT DISTINCT        
+ a.Parent_Accountid        
+  ,a.Parent_AccountName,A.SBU,A.Vertical        
+  ,a.EmployeeID,A.EmployeeName,        
+  A.EsaProjectID,A.Projectname--,B.Designation        
+  ,SUM(A.Avaialble_FTE_Below_M)AS 'Avaialble_FTE_Below_M'        
+  ,SUM(A.Available_Hours) AS 'Available_Hours'        
+  ,SUM(A.MPS_Effort) AS 'MPS_Effort'        
+  ,SUM(A.Work_Profile_AD) AS 'Work_Profile_AD'      
+  ,SUM(A.MAS_Effort) AS 'MAS_Effort'        
+  ,SUM(A.Actual_Effort) AS 'Actual_Effort'        
+  ,ISNULL(((SUM(A.Actual_Effort)) / NULLIF(SUM(A.Available_Hours), 0) * 100), 0) AS 'Associate_Account_Compliance' into #AssociateSummarytmp        
+ FROM #Associate_Summary A        
+  GROUP BY A.Parent_Accountid        
+    ,A.Parent_AccountName,A.SBU,a.Vertical        
+    ,EmployeeID,A.EsaProjectID,A.EmployeeName,A.Projectname    
+    
+   
+     
+----------- All Grade Logic -------------    
+    
+    
+    
+  IF OBJECT_ID(N'tempdb..#Associalte_Final_All_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #Associalte_Final_All_All_Grade END    
+    
+CREATE table #Associalte_Final_All_All_Grade(            
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),            
+SBU varchar (50),            
+Vertical varchar (50),            
+SDM_ID char(15),            
+SDM_Name varchar (100),           
+SDD_ID char(15),           
+SDD_Name varchar (100),           
+Project_ID Char(15) Not Null,           
+Project_Name varchar(100),           
+associate_id char(15),            
+Assciate_Name varchar(100),           
+Allocation_Startdate datetime,            
+Allocation_Enddate datetime,            
+Allocation_Percentage decimal(10,4),           
+ESA_FTE_Count Decimal(10,4),           
+Available_Hours Decimal(10,2),           
+DE_Inscope varchar(50),            
+Department_Name varchar(100),           
+Job_Code varchar(20),           
+Designation varchar(50))        
+        
+BEGIN        
+INSERT INTO #Associalte_Final_All_All_Grade            
+ SELECT DISTINCT        
+  AF.Parent_Accountid,AF.Parent_AccountName,AF.SBU,AF.Vertical,AF.SDM_ID,AF.SDM_Name,AF.SDD_ID,AF.SDD_Name,AF.Project_ID,PRS.Project_Name,AF.associate_id,AP.AssociateName,AF.Allocation_Startdate,        
+  AF.Allocation_Enddate,AF.Allocation_Percentage,AF.ESA_FTE_Count,AF.Available_Hours,AF.DE_Inscope ,CRS.[Dept_Name],CRS.[JobCode],CRS.[Designation]          
+ FROM #Associalte_FinalAllocation AF        
+ JOIN #Temp_BM_Applns AP ON AF.Associate_id = ap.Associateid           
+ LEFT JOIN [Adp].[CentralRepository_Project] PRS ON AF.Project_ID = PRS.Project_id   
+ LEFT JOIN [Adp].[CentralRepository_Associate_Details] CRS  ON AF.Associate_id = crs.Associate_ID        
+ ORDER BY Af.Associate_id DESC        
+     
+ DELETE FROM #Associalte_Final_All_All_Grade where associate_id='323477'        
+END    
+    
+IF OBJECT_ID(N'tempdb..#Allocatedassoc_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #Allocatedassoc_All_Grade END    
+    
+SELECT DISTINCT        
+ AF.associate_id,        
+AF.Assciate_Name        
+ ,lg.UserID        
+ ,PM.EsaProjectID        
+ ,PM.ProjectName        
+ ,LG.ProjectID        
+ ,AF.Parent_Accountid as ParentCustomerID        
+ ,AF.Parent_AccountName as   ParentCustomername      
+ ,LG.IsNonESAAuthorized        
+ ,AF.DE_Inscope INTO #Allocatedassoc_All_Grade        
+FROM #Associalte_Final_All_All_Grade AF        
+LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM ON AF.Project_ID = PM.EsaProjectID   
+LEFT JOIN [AppVisionLens].AVL.MAS_LoginMaster LG ON PM.ProjectID = LG.ProjectID        
+AND AF.associate_id = lg.EmployeeID        
+LEFT JOIN [AppVisionLens].AVL.Customer CS ON PM.CustomerID = CS.CustomerID           
+WHERE CS.IsDeleted = '0' AND PM.IsDeleted = '0' --AND PA.IsActive = '1'    
+    
+IF OBJECT_ID(N'tempdb..#TEMPR_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #TEMPR_All_Grade END    
+    
+ SELECT DISTINCT        
+ LG.EmployeeID,        
+ LG.EmployeeName        
+ ,PM.EsaProjectID,        
+ PM.ProjectName        
+ ,lg.UserID        
+ ,LG.ProjectID        
+ ,LG.IsNonESAAuthorized       
+INTO #TEMPR_All_Grade        
+FROM [AppVisionLens].AVL.MAS_LoginMaster LG        
+JOIN #Temp_BM_Applns APS ON LG.EmployeeID = APS.associateid        
+LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM ON LG.ProjectID = PM.ProjectID  
+--JOIN #Associalte_FinalAllocation FA ON FA.associate_id=LG.EmployeeID AND FA.Project_ID=PM.EsaProjectId --Fix  
+LEFT JOIN [ADPR].[Input_Data_AssociateRAW] AD ON PM.EsaProjectID = ad.EsaProjectID  AND AD.OnBoardStatus='Onboarded'      
+LEFT JOIN [ADPR].[Input_Excel_Associate] B ON PM.EsaProjectID=b.EsaProjectID        
+WHERE LG.IsDeleted = '0' AND PM.IsDeleted = '0'        
+        
+DELETE  FROM #TEMPR_All_Grade WHERE EmployeeID='323477'    
+    
+IF OBJECT_ID(N'tempdb..#LoginAssociate_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #LoginAssociate_All_Grade END    
+    
+SELECT DISTINCT        
+ EmployeeID,EmployeeName        
+ ,EsaProjectID,ProjectName        
+ ,UserID        
+ ,ProjectID        
+ ,ParentCustomerID        
+ ,ParentCustomerName        
+ ,IsNonESAAuthorized        
+ ,DE_Inscope        
+ ,Dept_Name        
+ ,Jobcode        
+ ,Designation INTO #LoginAssociate_All_Grade        
+FROM (SELECT DISTINCT        
+  LG.EmployeeID,LG.EmployeeName        
+  ,LG.EsaProjectID,LG.ProjectName        
+  ,LG.UserID        
+  ,LG.ProjectID        
+  ,AF.Parent_Accountid as ParentCustomerID      
+  ,AF.Parent_AccountName  as ParentCustomerName      
+  ,LG.IsNonESAAuthorized        
+  ,AF.DE_Inscope ,       
+CRS.[Dept_Name],      
+CRS.[JobCode],      
+CRS.[Designation]       
+        
+ FROM #TEMPR_All_Grade LG        
+ JOIN #Temp_BM_Applns APS ON LG.EmployeeID = APS.associateid        
+ LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM ON LG.ProjectID = PM.ProjectID  
+ JOIN [AppVisionLens].AVL.Customer CS ON PM.CustomerID = CS.CustomerID        
+ LEFT JOIN #Associalte_Final_All_All_Grade AF ON PM.EsaProjectID = AF.Project_ID        
+ LEFT JOIN [Adp].[CentralRepository_Associate_Details] CRS ON LG.EmployeeID = crs.Associate_ID        
+ WHERE CS.IsDeleted = '0' AND PM.IsDeleted = '0') TMP     
+    
+ IF OBJECT_ID(N'tempdb..#Tempfin_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #Tempfin_All_Grade END    
+    
+ SELECT DISTINCT        
+ EmployeeID,EmployeeName        
+ ,UserID        
+ ,EsaProjectID,Projectname        
+ ,ProjectID        
+ ,ParentCustomerID        
+ ,ParentCustomerName        
+ ,IsNonESAAuthorized        
+ ,Dept_name        
+ ,Jobcode        
+ ,designation INTO #Tempfin_All_Grade        
+FROM #LoginAssociate_All_Grade A        
+WHERE NOT EXISTS (SELECT        
+associate_id,assciate_name        
+  ,UserID        
+  ,EsaProjectID,projectname        
+  ,ProjectID        
+  ,ParentCustomerID        
+  ,ParentCustomerName        
+  ,IsNonESAAuthorized      
+  ,DE_Inscope      
+ FROM #Allocatedassoc_All_Grade B        
+ WHERE a.EmployeeID = b.associate_id        
+ AND a.EsaProjectID = b.EsaProjectID)    
+    
+ INSERT INTO #Associalte_Final_All_All_Grade (Parent_Accountid, Parent_AccountName, SBU,Vertical,SDM_ID,SDM_Name,SDD_ID,SDD_Name ,Project_ID, Project_Name,associate_id, Assciate_Name,B.DE_Inscope, Department_Name,Job_Code, Designation)          
+ SELECT DISTINCT        
+  ParentCustomerID        
+  ,ParentCustomerName        
+  ,C.PracticeOwner,C.ProjectOwningPractice        
+  ,c.[PO ID],c.[PO Name],c.[DM ID],c.[DM Name]        
+  ,a.EsaProjectID,A.Projectname        
+  ,EmployeeID,EMployeeName        
+  ,B.DE_Inscope        
+  ,Dept_Name        
+  ,jobcode        
+  ,designation        
+ FROM #Tempfin_All_Grade A        
+ JOIN [ADPR].[Input_Excel_Associate] B        
+  ON a.EsaProjectID = b.EsaProjectID        
+  JOIN [ADPR].[Input_Data_AssociateRAW] C        
+  ON a.EsaProjectID = c.EsaProjectID AND C.OnBoardStatus='Onboarded'   
+  
+--Allocation Issue Fix  
+  
+ DELETE FROM #Associalte_Final_All_All_Grade where (   
+--Allocation in first 2 days of the month and 2 days are sat and sun  
+(DATEDIFF(DAY,Allocation_StartDate,Allocation_EndDate)=1 AND Allocation_StartDate=@StartDate  
+AND DATENAME(WEEKDAY,@StartDate)='Saturday'  
+AND DATENAME(WEEKDAY,DATEADD(DAY,1,@StartDate))='Sunday') OR  
+--Allocation in first 2 days of the month and 2 days are sat and sun where AllocationStartDate is in past  
+(DATEDIFF(DAY,@StartDate,Allocation_EndDate)=1  
+AND DATENAME(WEEKDAY,@StartDate)='Saturday'  
+AND DATENAME(WEEKDAY,DATEADD(DAY,1,@StartDate))='Sunday') OR  
+--Allocation in last 2 days of the month and 2 days are sat and sun  
+(DATEDIFF(DAY,Allocation_StartDate,Allocation_EndDate)=1 AND Allocation_EndDate=EOMONTH(@StartDate)  
+AND DATEPART(WEEKDAY,DATEADD(DAY,-1,EOMONTH(@StartDate)))=7  
+AND DATEPART(WEEKDAY,EOMONTH(@StartDate))=1) OR  
+--Allocation in first day of month and it is either sat or sun  
+(Allocation_EndDate=@StartDate  
+AND (DATENAME(WEEKDAY,@StartDate)='Saturday' OR DATENAME(WEEKDAY,@StartDate)='Sunday')) OR  
+--Allocation in last day of month and it is either sat or sun  
+(Allocation_StartDate=EOMONTH(@StartDate)   
+AND (DATEPART(WEEKDAY,EOMONTH(@StartDate))=7 OR DATEPART(WEEKDAY,EOMONTH(@StartDate))=1)) OR  
+--Mid Allocation for only 2 days and 2 days are sat and sun  
+(DATEDIFF(DAY,Allocation_StartDate,Allocation_EndDate)=1   
+AND DATENAME(WEEKDAY,Allocation_StartDate)='Saturday'  
+AND DATENAME(WEEKDAY,Allocation_EndDate)='Sunday') OR  
+--Mid Allocation for only 1 day and it either sat or sun   
+(DATEDIFF(DAY,Allocation_StartDate,Allocation_EndDate)=0  
+AND (DATENAME(WEEKDAY,Allocation_StartDate)='Saturday'   
+OR DATENAME(WEEKDAY,Allocation_StartDate)='Sunday'))  
+)  
+  
+--SELECT * INTO #Temp FROM #Associalte_Final_All_All_Grade  
+  
+--TRUNCATE TABLE #Associalte_Final_All_All_Grade  
+  
+--INSERT INTO #Associalte_Final_All_All_Grade  
+--SELECT A.* FROM #Temp A JOIN #Associalte_FinalAllocation FA ON FA.associate_id=A.associate_id AND FA.Project_ID=A.Project_ID   
+  
+  
+TRUNCATE TABLE [ADPR].[Associate_Allocation_Raw]       
+        
+INSERT INTO [ADPR].[Associate_Allocation_Raw]        
+SELECT DISTINCT Parent_Accountid,Parent_AccountName,SBU, Vertical,SDM_ID ,SDM_Name ,SDD_ID ,SDD_Name         
+,Project_ID ,Project_Name,associate_id ,Assciate_Name, Allocation_Startdate ,Allocation_Enddate ,Allocation_Percentage,           
+ESA_FTE_Count ,Available_Hours ,DE_Inscope ,Department_Name ,Job_Code,Designation          
+FROM #Associalte_Final_All_All_Grade    
+  
+  
+     
+ IF OBJECT_ID(N'tempdb..#Loginmaster_associate_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #Loginmaster_associate_All_Grade END    
+    
+CREATE Table #Loginmaster_associate_All_Grade    
+(        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+UserID int ,        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+ProjectID int,        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+IsNonESAAuthorized bit,        
+)        
+        
+      
+        
+INSERT INTO #Loginmaster_associate_All_Grade        
+ SELECT DISTINCT        
+  EmployeeID,Employeename        
+  ,UserID        
+  ,EsaProjectID,projectname        
+  ,ProjectID        
+  ,ParentCustomerID        
+  ,ParentCustomerName        
+  ,IsNonESAAuthorized        
+ FROM #LoginAssociate_All_Grade          
+ UNION     
+ SELECT DISTINCT        
+  associate_id,assciate_name        
+  ,UserID        
+  ,EsaProjectID,projectname        
+  ,ProjectID        
+  ,ParentCustomerID        
+  ,ParentCustomerName        
+  ,IsNonESAAuthorized        
+ FROM #Allocatedassoc_All_Grade        
+      
+DELETE FROM #Loginmaster_associate_All_Grade WHERE EmployeeID='323477'    
+    
+IF OBJECT_ID(N'tempdb..#MPS_Effort_All_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #MPS_Effort_All_All_Grade END    
+    
+    
+CREATE Table #MPS_Effort_All_All_Grade(            
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+IsNonESAAuthorized bit,        
+App_Effort decimal (10,2),      
+Infra_Effort decimal(10,2)    
+)     
+INSERT INTO #MPS_Effort_All_All_Grade    
+ SELECT   DISTINCT      
+  Parent_Accountid        
+  ,Parent_AccountName        
+  ,EsaProjectID,Projectname        
+  ,EmployeeID,EmployeeName        
+  ,IsNonESAAuthorized        
+  ,ISNULL(SUM(C.Hours),0) As 'App_Effort'     
+  ,ISNULL(SUM(D.Hours),0) As 'Infra_Effort'     
+  FROM #Loginmaster_associate_All_Grade tmp        
+ LEFT JOIN [AppVisionLens].AVL.TM_PRJ_Timesheet B        
+  ON tmp.UserID = b.SubmitterId        
+  AND B.TimesheetDate BETWEEN @StartDate and @EndDate        
+ LEFT JOIN [AppVisionLens].AVL.TM_TRN_TimesheetDetail C  ON b.TimesheetId = C.TimesheetId AND B.ProjectID=c.ProjectId         
+ LEFT join [AppVisionLens].AVL.TM_TRN_InfraTimesheetDetail D on b.TimesheetId = D.TimesheetId AND B.ProjectID=d.ProjectId          
+ GROUP BY Parent_Accountid        
+    ,Parent_AccountName        
+    ,EsaProjectID,Projectname        
+    ,EmployeeID,EmployeeName        
+    ,IsNonESAAuthorized     
+    
+IF OBJECT_ID(N'tempdb..#MPS_Effort_Workitem_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #MPS_Effort_Workitem_All_Grade END    
+    
+CREATE Table #MPS_Effort_Workitem_All_Grade  (        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+IsNonESAAuthorized bit,        
+Workitem_Effort decimal (10,2),        
+)        
+        
+INSERT INTO #MPS_Effort_Workitem_All_Grade        
+        
+ SELECT  DISTINCT       
+  Parent_Accountid        
+  ,Parent_AccountName        
+  ,EsaProjectID,Projectname        
+  ,EmployeeID,EmployeeName        
+  ,IsNonESAAuthorized        
+  ,ISNULL(SUM(D.Hours),0) As 'Workitem_effort'        
+   FROM #Loginmaster_associate_All_Grade tmp        
+ LEFT JOIN [AppVisionLens].AVL.TM_PRJ_Timesheet B        
+  ON tmp.UserID = b.SubmitterId        
+  AND B.TimesheetDate BETWEEN @StartDate AND @enddate        
+  LEFT join [AppVisionLens].ADM.TM_TRN_WorkItemTimesheetDetail D on b.TimesheetId = D.TimesheetId --AND B.ProjectID=d.ProjectId          
+      
+ GROUP BY Parent_Accountid        
+    ,Parent_AccountName        
+    ,EsaProjectID,Projectname        
+    ,EmployeeID,EmployeeName        
+    ,IsNonESAAuthorized        
+       
+    
+    
+IF OBJECT_ID(N'tempdb..#MPS_Effort_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #MPS_Effort_All_Grade END     
+ CREATE Table #MPS_Effort_All_Grade        
+(        
+        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+IsNonESAAuthorized bit,        
+MPS_Effort decimal (10,2),        
+)        
+        
+INSERT INTO #MPS_Effort_All_Grade        
+        
+select  DISTINCT        
+  A.Parent_Accountid        
+  ,A.Parent_AccountName        
+  ,A.EsaProjectID,A.Projectname        
+  ,A.EmployeeID,A.EmployeeName        
+  ,A.IsNonESAAuthorized ,Isnull(sum(AP.App_Effort+AP.Infra_Effort),0) as 'MPS'        
+  FROM #Loginmaster_associate_All_Grade A        
+   LEFT JOIN #MPS_Effort_All_All_Grade AP on a.EmployeeID=AP.employeeid and  A.EsaProjectID=AP.EsaProjectID          
+group by  A.Parent_Accountid        
+  ,A.Parent_AccountName        
+  ,A.EsaProjectID,A.Projectname        
+  ,A.EmployeeID,A.EmployeeName        
+  ,A.IsNonESAAuthorized       
+      
+        
+ IF OBJECT_ID(N'tempdb..#MAS_Effort_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #MAS_Effort_All_Grade END       
+CREATE Table #MAS_Effort_All_Grade        
+(        
+        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+IsNonESAAuthorized bit,        
+MAS_Effort decimal (10,2)        
+)        
+INSERT INTO #MAS_Effort_All_Grade        
+        
+ SELECT DISTINCT        
+  Parent_Accountid        
+  ,Parent_AccountName        
+  ,A.EsaProjectID,A.Projectname        
+  ,A.EmployeeID,A.EmployeeName        
+  ,IsNonESAAuthorized        
+  ,ISNULL(SUM(b.Hours), 0) AS 'MAS_Effort'        
+ FROM #Loginmaster_associate_All_Grade A        
+LEFT JOIN [DiscoverEDS].[EDS].[TimesheetDetail_All_Enhancement_AD] B        
+  ON a.EmployeeID = b.[SubmitterID]        
+  AND a.EsaProjectID = b.[ESAProjectID]        
+  AND B.[TimesheetSubmissionDate] BETWEEN @StartDate AND @EndDate      
+ GROUP BY Parent_Accountid        
+    ,Parent_AccountName        
+    ,A.EsaProjectID,A.Projectname        
+    ,A.EmployeeID,A.EmployeeName        
+    ,IsNonESAAuthorized        
+        
+        
+ IF OBJECT_ID(N'tempdb..#Total_Effort_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #Total_Effort_All_Grade END         
+        
+CREATE Table #Total_Effort_All_Grade        
+(        
+        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+MPS_Effort decimal (10,2),        
+Work_Profile_AD decimal (10,2),        
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2)        
+)         
+INSERT INTO #Total_Effort_All_Grade            
+ SELECT DISTINCT        
+  A.Parent_Accountid        
+  ,A.Parent_AccountName        
+  ,A.EsaProjectID,A.Projectname        
+  ,A.EmployeeID,A.EmployeeName        
+  ,SUM(ISNULL(MP.MPS_Effort, 0))        
+  ,SUM(ISNULL(WI.Workitem_Effort, 0))      
+  ,SUM(ISNULL(MA.MAS_Effort, 0))        
+  ,SUM(ISNULL(MP.MPS_Effort, 0) + ISNULL(WI.Workitem_Effort, 0)+ ISNULL(MA.MAS_Effort, 0)) 'Actual_Effort'        
+ FROM #Loginmaster_associate_All_Grade A            
+ LEFT JOIN #MPS_Effort_All_Grade MP ON a.EmployeeID = MP.EmployeeID AND a.EsaProjectID = mp.EsaProjectID            
+ LEFT JOIN #MAS_Effort_All_Grade MA ON a.EmployeeID = MA.EmployeeID AND a.EsaProjectID = mA.EsaProjectID      
+ LEFT JOIN #MPS_Effort_Workitem_All_Grade WI ON a.EmployeeID=WI.EmployeeID AND a.EsaProjectID=wi.EsaProjectID     
+ GROUP BY A.Parent_Accountid        
+    ,A.Parent_AccountName        
+    ,A.EsaProjectID,A.Projectname        
+    ,A.EmployeeID,A.EmployeeName      
+     
+IF OBJECT_ID(N'tempdb..#Associate_FTE_Hours_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #Associate_FTE_Hours_All_Grade END     
+    
+CREATE table #Associate_FTE_Hours_All_Grade(Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+Avaialble_FTE_Below_M decimal (10,4),        
+Available_Hours decimal (10,2))        
+        
+INSERT INTO #Associate_FTE_Hours_All_Grade           
+ SELECT DISTINCT        
+  Parent_Accountid        
+  ,Parent_AccountName        
+  ,Project_ID,A.Project_Name        
+  ,associate_id        
+  ,A.Assciate_Name        
+  ,ISNULL(SUM(ESA_FTE_Count), 0)        
+  ,ISNULL(SUM(Available_Hours), 0)        
+ FROM #Associalte_Final_All_All_Grade A         
+ GROUP BY Parent_Accountid        
+    ,Parent_AccountName        
+    ,Project_ID,A.Project_Name        
+    ,associate_id,A.Assciate_Name       
+    
+IF OBJECT_ID(N'tempdb..#Associate_Summary_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #Associate_Summary_All_Grade END     
+    
+CREATE Table #Associate_Summary_All_Grade        
+(Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+SBU varchar (50),        
+Vertical varchar (50),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+Avaialble_FTE_Below_M decimal (10,4),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),       
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Associate_Compliance decimal (10,2)        
+)        
+        
+INSERT INTO #Associate_Summary_All_Grade          
+ SELECT DISTINCT        
+  af.Parent_Accountid        
+  ,af.Parent_AccountName         
+  ,BU.PracticeOwner,Bu.ProjectOwningPractice        
+  ,af.EsaProjectID,AF.Projectname        
+  ,af.EmployeeID,AF.EmployeeName        
+  ,ISNULL((Avaialble_FTE_Below_M), 0) AS ESA_FTE        
+  ,ISNULL((Available_Hours), 0)        
+  AS Available_hours        
+  ,ISNULL((B.MPS_Effort), 0)      
+  ,ISNULL((B.Work_Profile_AD), 0)      
+  ,ISNULL((B.MAS_Effort), 0)        
+  ,ISNULL((B.Actual_Effort), 0)        
+  ,ISNULL(((Actual_Effort / NULLIF(Available_Hours, 0)) * 100), 0)        
+ FROM #Associate_FTE_Hours_All_Grade AF         
+ JOIN [ADPR].[Input_Data_AssociateRAW] BU ON af.EsaProjectID = bU.EsaProjectID  AND BU.OnBoardStatus='Onboarded'      
+ LEFT JOIN #Total_Effort_All_Grade B ON IsNull(af.Parent_Accountid,0) = IsNull(b.Parent_Accountid,0)        
+  AND af.EsaProjectID = b.EsaProjectID        
+  AND af.EmployeeID = b.EmployeeID      
+    
+  IF OBJECT_ID(N'tempdb..#AssociateSummarytmp_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #AssociateSummarytmp_All_Grade END    
+    
+  SELECT DISTINCT        
+ a.Parent_Accountid        
+  ,a.Parent_AccountName,A.SBU,A.Vertical        
+  ,a.EmployeeID,A.EmployeeName,        
+  A.EsaProjectID,A.Projectname--,B.Designation        
+  ,SUM(A.Avaialble_FTE_Below_M)AS 'Avaialble_FTE_Below_M'        
+  ,SUM(A.Available_Hours) AS 'Available_Hours'        
+  ,SUM(A.MPS_Effort) AS 'MPS_Effort'        
+  ,SUM(A.Work_Profile_AD) AS 'Work_Profile_AD'      
+  ,SUM(A.MAS_Effort) AS 'MAS_Effort'        
+  ,SUM(A.Actual_Effort) AS 'Actual_Effort'        
+  ,ISNULL(((SUM(A.Actual_Effort)) / NULLIF(SUM(A.Available_Hours), 0) * 100), 0) AS 'Associate_Account_Compliance' into #AssociateSummarytmp_All_Grade        
+ FROM #Associate_Summary_All_Grade A        
+  GROUP BY A.Parent_Accountid        
+    ,A.Parent_AccountName,A.SBU,a.Vertical        
+    ,EmployeeID,A.EsaProjectID,A.EmployeeName,A.Projectname    
+    
+IF OBJECT_ID(N'tempdb..#AssociateActual_Final_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #AssociateActual_Final_All_Grade END    
+    
+CREATE Table #AssociateActual_Final_All_Grade(Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+SBU varchar (50),        
+Vertical varchar (50),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+Department_Name varchar(100),        
+Job_Code varchar(50),        
+Designation varchar(100),        
+Avaialble_FTE_Below_M decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),       
+Work_Profile_AD decimal (10,2),       
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Associate_Account_Compliance decimal (10,2)        
+)        
+      
+INSERT INTO #AssociateActual_Final_All_Grade          
+SELECT DISTINCT        
+a.Parent_Accountid        
+  ,a.Parent_AccountName,A.SBU,A.Vertical,EsaProjectID,Projectname        
+  ,a.EmployeeID,EmployeeName,Department_Name,Job_code,Designation        
+  ,(A.Avaialble_FTE_Below_M)        
+  ,(A.Available_Hours)        
+  ,(A.MPS_Effort)        
+  ,(A.Work_Profile_AD)      
+  ,(A.MAS_Effort)        
+  ,(A.Actual_Effort)        
+  ,Associate_Account_Compliance      
+ FROM #AssociateSummarytmp_All_Grade A        
+ LEFT OUTER JOIN [ADPR].[Associate_Allocation_Raw] dp ON A.EmployeeID = dp.Associate_ID and a.Parent_Accountid=dp.Parent_Accountid and A.EsaProjectID=dp.Project_ID AND a.SBU=dp.SBU        
+    
+ IF OBJECT_ID(N'tempdb..#AssociateActual_Final') IS NOT NULL    
+BEGIN DROP TABLE #AssociateActual_Final END    
+    
+CREATE Table #AssociateActual_Final(Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+SBU varchar (50),        
+Vertical varchar (50),        
+EsaProjectID Char(15) Not Null,        
+Projectname varchar(100),        
+EmployeeID varchar(15),        
+EmployeeName varchar(100),        
+Department_Name varchar(100),        
+Job_Code varchar(50),        
+Designation varchar(100),        
+Avaialble_FTE_Below_M decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),       
+Work_Profile_AD decimal (10,2),       
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Associate_Account_Compliance decimal (10,2)        
+)        
+      
+INSERT INTO #AssociateActual_Final          
+SELECT DISTINCT        
+a.Parent_Accountid        
+  ,a.Parent_AccountName,A.SBU,A.Vertical,EsaProjectID,Projectname        
+  ,a.EmployeeID,EmployeeName,Department_Name,Job_code,Designation        
+  ,(A.Avaialble_FTE_Below_M)        
+  ,(A.Available_Hours)        
+  ,(A.MPS_Effort)        
+  ,(A.Work_Profile_AD)      
+  ,(A.MAS_Effort)        
+  ,(A.Actual_Effort)        ,Associate_Account_Compliance      
+ FROM #AssociateSummarytmp A        
+ LEFT OUTER JOIN [ADPR].[Associate_Allocation_Raw] dp ON A.EmployeeID = dp.Associate_ID and a.Parent_Accountid=dp.Parent_Accountid and A.EsaProjectID=dp.Project_ID AND a.SBU=dp.SBU        
+     
+  
+ ------------------- Project Compliance Start -----------------  
+ IF OBJECT_ID(N'tempdb..#Associate_Total_project_Compliance') IS NOT NULL    
+BEGIN DROP TABLE #Associate_Total_project_Compliance END    
+CREATE Table #Associate_Total_project_Compliance        
+(        
+        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectid Char(15),        
+ProjectName varchar(100),        
+SBU varchar (50),        
+EmployeeID varchar(15),       
+Avaialble_FTE_Below_M decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),        
+Work_Profile_AD decimal (10,2),       
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Associate_Project_Compliance decimal (10,2)        
+)     
+INSERT INTO #Associate_Total_project_Compliance        
+    
+SELECT  DISTINCT A.Parent_Accountid,A.Parent_AccountName,A.EsaProjectID,A.Projectname,A.SBU,A.EmployeeID,sum(A.Avaialble_FTE_Below_M),sum(Available_Hours),        
+sum(A.MPS_Effort),Sum(a.Work_Profile_AD),Sum(A.MAS_Effort),sum(A.Actual_Effort),ISNULL(((SUM(A.Actual_Effort)) / NULLIF(SUM(A.Available_Hours), 0) * 100), 0)   
+FROM #AssociateActual_Final A        
+JOIN [ADPR].Input_Data_AssociateRAW C ON a.EsaProjectID=C.EsaProjectID AND C.OnBoardStatus='Onboarded'        
+where C.DE_Inscope in('In Scope','Yet to scope')        
+GROUP BY A.Parent_Accountid,A.Parent_AccountName,A.EsaProjectID,A.Projectname,A.SBU,A.EmployeeID    
+    
+IF OBJECT_ID(N'tempdb..#Project_Compliance_Temp') IS NOT NULL    
+BEGIN DROP TABLE #Project_Compliance_Temp END    
+    
+CREATE TABLE #Project_Compliance_Temp        
+(        
+        
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectid Char(15),        
+ProjectName varchar(100),        
+EmployeeID varchar(15),           
+ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2)       
+)     
+    
+INSERT INTO #Project_Compliance_Temp    
+      
+  SELECT  DISTINCT        
+  Parent_Accountid        
+  ,Parent_AccountName,EsaProjectid,ProjectName        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) AS 'Associate_Greater' FROM #Associate_Total_project_Compliance B     
+  WHERE A.Parent_Accountid=B.Parent_Accountid  AND A.Parent_AccountName=B.Parent_AccountName AND    
+  A.EsaProjectid=B.EsaProjectid AND A.ProjectName=B.ProjectName AND A.EmployeeID=B.EmployeeID    
+  AND Associate_Project_Compliance =0),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) AS 'Associate_Greater' FROM #Associate_Total_project_Compliance B     
+  WHERE A.Parent_Accountid=B.Parent_Accountid  AND A.Parent_AccountName=B.Parent_AccountName AND    
+  A.EsaProjectid=B.EsaProjectid AND A.ProjectName=B.ProjectName AND A.EmployeeID=B.EmployeeID    
+  AND Associate_Project_Compliance >0 AND Associate_Project_Compliance <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) AS 'Associate_Greater' FROM #Associate_Total_project_Compliance B     
+  WHERE A.Parent_Accountid=B.Parent_Accountid  AND A.Parent_AccountName=B.Parent_AccountName AND    
+  A.EsaProjectid=B.EsaProjectid AND A.ProjectName=B.ProjectName AND A.EmployeeID=B.EmployeeID    
+  AND Associate_Project_Compliance >25 AND Associate_Project_Compliance <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) AS 'Associate_Greater' FROM #Associate_Total_project_Compliance B     
+  WHERE A.Parent_Accountid=B.Parent_Accountid  AND A.Parent_AccountName=B.Parent_AccountName AND    
+  A.EsaProjectid=B.EsaProjectid AND A.ProjectName=B.ProjectName AND A.EmployeeID=B.EmployeeID    
+  AND Associate_Project_Compliance >50 AND Associate_Project_Compliance <=80),0)    
+    ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) AS 'Associate_Greater' FROM #Associate_Total_project_Compliance B     
+  WHERE A.Parent_Accountid=B.Parent_Accountid  AND A.Parent_AccountName=B.Parent_AccountName AND    
+  A.EsaProjectid=B.EsaProjectid AND A.ProjectName=B.ProjectName AND A.EmployeeID=B.EmployeeID AND    
+  Associate_Project_Compliance >80),0)    
+  FROM #Associate_Total_project_Compliance A    
+  GROUP BY Parent_Accountid,Parent_AccountName,EsaProjectid,ProjectName,EmployeeID    
+    
+IF OBJECT_ID(N'tempdb..#Project_Compliance') IS NOT NULL    
+BEGIN DROP TABLE #Project_Compliance END    
+    
+CREATE table #Project_Compliance(    
+Parent_Accountid Char(15),        
+Parent_AccountName varchar (100),        
+EsaProjectid Char(15),        
+ProjectName varchar(100),        
+SBU varchar (50),        
+ESA_All_FTE decimal (10,2),        
+ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),       
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Effort_Project_Compliance_percent decimal (10,2),        
+Associate_Project_Compliance_Percent decimal (10,2)        
+)      
+        
+INSERT INTO #Project_Compliance        
+SELECT DISTINCT        
+  a.Parent_Accountid        
+  ,a.Parent_AccountName,A.EsaProjectid,A.ProjectName,A.SBU        
+  ,ISNULL(SUM(A.Avaialble_FTE_Below_M), 0)        
+  ,ISNULL(SUM(B.ESA_FTE_Zero), 0)        
+  ,ISNULL(SUM(B.ESA_FTE_0_25), 0)        
+  ,ISNULL(SUM(B.ESA_FTE_25_50), 0)        
+  ,ISNULL(SUM(B.ESA_FTE_50_80), 0)          ,ISNULL(SUM(B.ESA_FTE_80), 0)           
+  ,ISNULL(SUM(A.Available_Hours), 0)        
+  ,ISNULL(SUM(A.MPS_Effort), 0)       
+  ,ISNULL(SUM(A.Work_Profile_AD), 0)      
+  ,ISNULL(SUM(A.MAS_Effort), 0)        
+  ,ISNULL(SUM(A.Actual_Effort), 0)        
+  ,ISNULL(((ISNULL(SUM(A.Actual_Effort), 0)) / NULLIF(SUM(A.Available_Hours), 0) * 100), 0)     
+  ,ISNULL(((ISNULL(SUM(B.ESA_FTE_80), 0)) / NULLIF(SUM(a.Avaialble_FTE_Below_M), 0) * 100), 0)        
+ FROM #Associate_Total_project_Compliance A          
+ LEFT JOIN #Project_Compliance_Temp B ON A.Parent_Accountid = B.Parent_Accountid AND     
+ A.EmployeeID = b.EmployeeID AND A.EsaProjectid=B.EsaProjectid         
+ GROUP BY A.Parent_Accountid,A.Parent_AccountName,A.EsaProjectid,A.ProjectName,A.SBU   
+  
+ ---FTE<5 Removal Changes  
+ IF(@ReportType='ADM')  
+ BEGIN  
+  DELETE FROM #Project_Compliance WHERE ISNULL(ESA_All_FTE,0)<5  
+ END  
+  
+TRUNCATE TABLE [ADPR].Project_Compliance  
+INSERT INTO [ADPR].Project_Compliance            
+SELECT DISTINCT        
+ Parent_Accountid        
+ ,Parent_AccountName        
+ ,EsaProjectid, ProjectName,SBU        
+ ,ESA_All_FTE        
+ ,ESA_FTE_Zero        
+ ,ESA_FTE_0_25        
+ ,ESA_FTE_25_50        
+ ,ESA_FTE_50_80        
+ ,ESA_FTE_80        
+ ,Available_Hours        
+ ,MPS_Effort        
+ ,Work_Profile_AD      
+ ,MAS_Effort        
+ ,Actual_Effort,        
+ Effort_Project_Compliance_percent        
+ ,Associate_Project_Compliance_Percent        
+FROM #Project_Compliance  
+  
+ ---------------------- Project Compliance End ------------------------------  
+  
+TRUNCATE TABLE [ADPR].Associate_Compliance_RAW        
+INSERT  INTO [ADPR].Associate_Compliance_RAW   
+SELECT DISTINCT   
+A.Parent_Accountid,        
+A.Parent_AccountName ,        
+A.SBU ,        
+Vertical ,        
+A.EsaProjectID,        
+A.Projectname ,        
+EmployeeID ,        
+EmployeeName ,        
+Department_Name ,        
+Job_Code ,        
+Designation ,        
+Avaialble_FTE_Below_M ,        
+Available_Hours ,        
+MPS_Effort ,      
+Work_Profile_AD ,       
+MAS_Effort ,        
+Actual_Effort ,        
+Associate_Account_Compliance  FROM #AssociateActual_Final_All_Grade A  
+  
+  
+    
+  ------------------- ACCOUNT COMPLIANCE START -------------------------------  
+ IF OBJECT_ID(N'tempdb..#Associate_Accountcompliance') IS NOT NULL    
+BEGIN DROP TABLE #Associate_Accountcompliance END    
+  
+ CREATE Table #Associate_Accountcompliance    
+(    
+    
+Parent_Accountid Char(15),    
+Parent_AccountName varchar (100),    
+Vertical varchar (50),  
+MarketUnitName varchar(50),  
+BU varchar(50),  
+EmployeeID varchar(15),    
+Department_Name varchar(100),  
+Project_Scope varchar(50),  
+Avaialble_FTE_Below_M decimal (10,2),    
+Available_Hours decimal (10,2),    
+MPS_Effort decimal (10,2),   
+Work_Profile_AD decimal (10,2),   
+MAS_Effort decimal (10,2),    
+Actual_Effort decimal (10,2),    
+Associate_Account_Compliance decimal (10,2)    
+)    
+  
+ ---FTE<5 Removal Changes  
+  
+INSERT INTO  #Associate_Accountcompliance    
+    
+SELECT  DISTINCT A.Parent_Accountid,A.Parent_AccountName,A.Vertical,C.PracticeOwner,C.MARKET_BU,A.EmployeeID,A.Department_Name,  
+PROJECTSCOPE,sum(A.Avaialble_FTE_Below_M),sum(A.Available_Hours),    
+sum(A.MPS_Effort),sum(A.Work_Profile_AD),Sum(A.MAS_Effort),sum(A.Actual_Effort),ISNULL(((SUM(A.Actual_Effort)) / NULLIF(SUM(A.Available_Hours),0) * 100), 0)   
+from #AssociateActual_Final A    
+JOIN [ADPR].Input_Data_AssociateRAW C ON a.EsaProjectID=C.EsaProjectID AND C.OnBoardStatus='Onboarded'  
+JOIN [ADPR].Project_Compliance P ON A.EsaProjectID=P.EsaProjectid  
+where C.DE_Inscope='In scope'  
+Group by  A.Parent_Accountid,A.Parent_AccountName,A.Vertical,A.EmployeeID,A.Department_Name,C.PracticeOwner,C.MARKET_BU,PROJECTSCOPE  
+  
+select distinct A.Parent_Accountid,A.EsaProjectID as 'Project#',c.projectscope,A.Vertical,C.PracticeOwner,C.MARKET_BU,sum(Available_Hours) as 'Availablehours'   
+Into #ScopeProject_tmp  
+from #AssociateActual_Final A  
+JOIN [ADPR].[Input_Data_AssociateRAW] C ON A.parent_accountid=C.parentaccountid   
+and a.EsaProjectID=C.EsaProjectID  AND C.OnBoardStatus='Onboarded'  
+JOIN [ADPR].Project_Compliance P ON A.EsaProjectID=P.EsaProjectid  
+group by A.Parent_Accountid ,A.EsaProjectID,c.projectscope,A.Vertical,C.PracticeOwner,C.MARKET_BU  
+  
+--select * from #ScopeProject  
+  
+--drop table #ScopeProject  
+  
+select Parent_Accountid, ProjectScope,Vertical,PracticeOwner,MARKET_BU, count(Project#) as 'Project#',sum(Availablehours) as 'Availablehours'   
+into #ScopeProject  
+from  #ScopeProject_tmp a  
+group by A.Parent_Accountid,a.ProjectScope,Vertical,PracticeOwner,MARKET_BU  
+  
+ IF OBJECT_ID(N'tempdb..#YETTOSCOPE') IS NOT NULL    
+BEGIN DROP TABLE #YETTOSCOPE END   
+  
+CREATE TABLE #YETTOSCOPE  
+(  
+Parent_Accountid Char(15),    
+Vertical [varchar](50) NULL,  
+[MARKET UNIT NAME] [varchar](50) NULL,  
+[BU] [varchar](50) NULL,  
+[Yet to onboard projects #] INT,  
+Available_Hours decimal (10,2)  
+)  
+  
+INSERT INTO #YETTOSCOPE  
+  
+SELECT Parent_Accountid,Vertical,PracticeOwner,MARKET_BU,Project#, Availablehours FROM  #ScopeProject WHERE ProjectScope=''  
+  
+Truncate Table [ADPR].[Account_Compliance_YETTOSCOPE]  
+  
+INSERT INTO [ADPR].[Account_Compliance_YETTOSCOPE]  
+SELECT Parent_Accountid,Vertical,[MARKET UNIT NAME],[BU], [Yet to onboard projects #],Available_Hours FROM #YETTOSCOPE  
+  
+--select * from #AssociateActual_Final  
+--drop table #YETTOSCOPE  
+  
+  
+  
+TRUNCATE table  [ADPR].[Associate_Accountcompliance_Raw]  
+    
+INSERT INTO  [ADPR].[Associate_Accountcompliance_Raw]    
+    
+select DISTINCT  Parent_Accountid ,    
+Parent_AccountName ,    
+Vertical ,    
+EmployeeID ,    
+Department_Name ,    
+Avaialble_FTE_Below_M ,    
+Available_Hours ,    
+MPS_Effort ,   
+Work_Profile_AD,  
+MAS_Effort ,    
+Actual_Effort ,    
+Associate_Account_Compliance FROM #Associate_Accountcompliance   
+  
+--select * from #Associate_Total_account_Compliance where Parent_Accountid='2000559'  
+ IF OBJECT_ID(N'tempdb..#Associate_Total_account_Compliance') IS NOT NULL    
+BEGIN DROP TABLE #Associate_Total_account_Compliance END   
+  
+CREATE Table #Associate_Total_account_Compliance    
+(    
+    
+Parent_Accountid Char(15),    
+Parent_AccountName varchar (100),    
+Vertical varchar (50),  
+MarketUnitName varchar(50),  
+BU varchar(50),  
+Project_scope varchar(50),  
+EmployeeID varchar(15),    
+Avaialble_FTE_Below_M decimal (10,2),    
+Available_Hours decimal (10,2),    
+MPS_Effort decimal (10,2),    
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),    
+Actual_Effort decimal (10,2),    
+Associate_Account_Compliance decimal (10,2)    
+)    
+    
+INSERT INTO #Associate_Total_account_Compliance    
+    
+ SELECT DISTINCT    
+  Parent_Accountid    
+  ,Parent_AccountName,Vertical,  
+  MarketUnitName,BU,Project_Scope,  
+  EmployeeID    
+  ,SUM(Avaialble_FTE_Below_M)    
+  ,SUM(Available_Hours)    
+  ,SUM(MPS_Effort)  
+  ,SUM(Work_Profile_AD)  
+  ,SUM(MAS_Effort)    
+  ,SUM(Actual_Effort)    
+  ,sum(Associate_Account_Compliance)   
+ FROM #Associate_Accountcompliance   
+ GROUP BY Parent_Accountid    
+    ,Parent_AccountName,Vertical,MarketUnitName,BU,Project_Scope, EmployeeID   
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_AVM_Cal') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_AVM_Cal END    
+    
+CREATE TABLE #Account_Compliance_AVM_Cal(       
+Parent_Accountid varchar (50),     
+EmployeeID varchar(15),  ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #Account_Compliance_AVM_Cal    
+ SELECT DISTINCT        
+  Parent_Accountid        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND [Associate_Account_Compliance] =0  and Project_Scope='AVM'),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope='AVM' AND B.[Associate_Account_Compliance] >0 and B.[Associate_Account_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope='AVM' AND B.[Associate_Account_Compliance] >25 and B.[Associate_Account_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope='AVM' AND B.[Associate_Account_Compliance] >50 and B.[Associate_Account_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope='AVM' AND B.[Associate_Account_Compliance] >80),0)    
+ FROM #Associate_Total_account_Compliance AS A         
+ GROUP BY Parent_Accountid        
+    ,EmployeeID    
+    
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_AM_temp') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_AM_temp END     
+CREATE table #Account_Compliance_AM_temp    
+    
+(    
+    
+Parent_Accountid Char(15),    
+Parent_AccountName varchar (100),    
+Vertical varchar (50),   
+MarketUnitName varchar(50),  
+BU varchar(50),  
+[AVM Project #] INT,  
+ESA_All_FTE decimal (10,2),    
+ESA_FTE_Zero decimal (10,2),    
+ESA_FTE_0_25 decimal (10,2),    
+ESA_FTE_25_50 decimal (10,2),    
+ESA_FTE_50_80 decimal (10,2),    
+ESA_FTE_80 decimal (10,2),    
+Available_Hours decimal (10,2),    
+MPS_Effort decimal (10,2),   
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),    
+Actual_Effort decimal (10,2),    
+Effort_Account_Compliance decimal (10,2),    
+Associate_Compliance_Percent decimal (10,2)    
+)    
+ --select * from #Account_Compliance_AD  
+    
+INSERT INTO #Account_Compliance_AM_temp  
+    
+SELECT DISTINCT    
+  a.Parent_Accountid    
+  ,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU,S.Project#  
+  ,ISNULL(SUM(a.Avaialble_FTE_Below_M), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_Zero), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_0_25), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_25_50), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_50_80), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_80), 0)    
+  ,ISNULL(SUM(a.Available_Hours), 0)    
+  ,ISNULL(SUM(a.MPS_Effort), 0)   
+  ,ISNULL(SUM(a.Work_Profile_AD), 0)  
+  ,ISNULL(SUM(a.MAS_Effort), 0)    
+  ,ISNULL(SUM(a.Actual_Effort), 0)    
+  ,ISNULL(((ISNULL(SUM(a.Actual_Effort), 0)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)    
+  ,ISNULL(((ISNULL(SUM(B.ESA_FTE_80), 0)) / NULLIF(SUM(a.Avaialble_FTE_Below_M), 0) * 100), 0)    
+ FROM #Associate_Total_account_Compliance A    
+ LEFT JOIN #Account_Compliance_AVM_Cal B ON a.Parent_Accountid = b.Parent_Accountid AND A.EmployeeID = b.EmployeeID    
+ left join #ScopeProject S on A.Parent_Accountid =S.Parent_Accountid and A.Project_scope=S.ProjectScope  
+ and a.Vertical=s.Vertical  and a.MarketUnitName=s.PracticeOwner  
+  where A.Project_scope='AVM'  
+ GROUP BY a.Parent_Accountid,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU,S.Project#    
+  
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_AM') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_AM END     
+CREATE table #Account_Compliance_AM  
+(  
+Parent_Accountid Char(15),  
+Parent_AccountName varchar (100),  
+Vertical varchar (50),  
+MarketUnitName varchar(50),  
+BU varchar(50),  
+[AVM Project #] INT,  
+ESA_All_FTE decimal (10,2),  
+ESA_FTE_Zero decimal (10,2),  
+ESA_FTE_0_25 decimal (10,2),  
+ESA_FTE_25_50 decimal (10,2),  
+ESA_FTE_50_80 decimal (10,2),  
+ESA_FTE_80 decimal (10,2),  
+Available_Hours decimal (10,2),  
+MPS_Effort decimal (10,2),  
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),  
+Actual_Effort decimal (10,2),  
+Effort_Account_Compliance decimal (10,2),  
+Associate_Compliance_Percent decimal (10,2)  
+)  
+--select * from #Account_Compliance_AD  
+INSERT INTO #Account_Compliance_AM  
+SELECT DISTINCT  
+a.Parent_Accountid  
+,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU,sum(a.[AVM Project #])  
+,ISNULL(SUM(a.ESA_All_FTE), 0)  
+,ISNULL(SUM(a.ESA_FTE_Zero), 0)  
+,ISNULL(SUM(a.ESA_FTE_0_25), 0)  
+,ISNULL(SUM(a.ESA_FTE_25_50), 0)  
+,ISNULL(SUM(a.ESA_FTE_50_80), 0)  
+,ISNULL(SUM(a.ESA_FTE_80), 0)  
+,ISNULL(SUM(a.Available_Hours), 0)  
+,ISNULL(SUM(a.MPS_Effort), 0)  
+,ISNULL(SUM(a.Work_Profile_AD), 0)  
+,ISNULL(SUM(a.MAS_Effort), 0)  
+,ISNULL(SUM(a.Actual_Effort), 0)  
+,ISNULL(((ISNULL(SUM(a.Actual_Effort), 0)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)  
+,ISNULL(((ISNULL(SUM(a.ESA_FTE_80), 0)) / NULLIF(SUM(a.ESA_All_FTE), 0) * 100), 0)  
+FROM #Account_Compliance_AM_temp A  
+GROUP BY a.Parent_Accountid,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU  
+  
+ --AD Scope Account Compliance Split  
+   
+IF OBJECT_ID(N'tempdb..#Account_Compliance_AD_Cal') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_AD_Cal END    
+    
+CREATE TABLE #Account_Compliance_AD_Cal(       
+Parent_Accountid varchar (50),     
+EmployeeID varchar(15),  ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #Account_Compliance_AD_Cal    
+ SELECT DISTINCT        
+  Parent_Accountid        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND [Associate_Account_Compliance] =0  and Project_Scope='AD'),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope='AD' AND B.[Associate_Account_Compliance] >0 and B.[Associate_Account_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope='AD' AND B.[Associate_Account_Compliance] >25 and B.[Associate_Account_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope='AD' AND B.[Associate_Account_Compliance] >50 and B.[Associate_Account_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope='AD' AND B.[Associate_Account_Compliance] >80),0)    
+ FROM #Associate_Total_account_Compliance AS A         
+ GROUP BY Parent_Accountid        
+    ,EmployeeID    
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_AD_temp') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_AD_temp END    
+CREATE table #Account_Compliance_AD_temp   
+    
+(    
+    
+Parent_Accountid Char(15),    
+Parent_AccountName varchar (100),    
+Vertical varchar (50),   
+MarketUnitName varchar(50),  
+BU varchar(50),  
+[AD Project #] INT,  
+ESA_All_FTE decimal (10,2),    
+ESA_FTE_Zero decimal (10,2),    
+ESA_FTE_0_25 decimal (10,2),    
+ESA_FTE_25_50 decimal (10,2),    
+ESA_FTE_50_80 decimal (10,2),    
+ESA_FTE_80 decimal (10,2),    
+Available_Hours decimal (10,2),    
+MPS_Effort decimal (10,2),   
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),    
+Actual_Effort decimal (10,2),    
+Effort_Account_Compliance decimal (10,2),    
+Associate_Compliance_Percent decimal (10,2)    
+)    
+    
+    
+INSERT INTO #Account_Compliance_AD_temp  
+--select * from #Account_Compliance_AD  where Parent_Accountid='2000559'  
+  
+SELECT DISTINCT    
+  a.Parent_Accountid    
+  ,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU , S.Project#  
+  ,ISNULL(SUM(a.Avaialble_FTE_Below_M), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_Zero), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_0_25), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_25_50), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_50_80), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_80), 0)    
+  ,ISNULL(SUM(a.Available_Hours), 0)    
+  ,ISNULL(SUM(a.MPS_Effort), 0)   
+  ,ISNULL(SUM(a.Work_Profile_AD), 0)  
+  ,ISNULL(SUM(a.MAS_Effort), 0)    
+  ,ISNULL(SUM(a.Actual_Effort), 0)    
+  ,ISNULL(((ISNULL(SUM(a.Actual_Effort), 0)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)    
+  ,ISNULL(((ISNULL(SUM(B.ESA_FTE_80), 0)) / NULLIF(SUM(a.Avaialble_FTE_Below_M), 0) * 100), 0)    
+ FROM #Associate_Total_account_Compliance A    
+ LEFT JOIN #Account_Compliance_AD_Cal B ON a.Parent_Accountid = b.Parent_Accountid AND A.EmployeeID = b.EmployeeID    
+  left join #ScopeProject S on A.Parent_Accountid =S.Parent_Accountid and A.Project_scope=S.ProjectScope  
+ and a.Vertical=s.Vertical  and a.MarketUnitName=s.PracticeOwner  
+ where A.Project_scope='AD'  
+ GROUP BY a.Parent_Accountid,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU,S.Project#  
+  
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_AD') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_AD END  
+CREATE table #Account_Compliance_AD  
+(  
+Parent_Accountid Char(15),  
+Parent_AccountName varchar (100),  
+Vertical varchar (50),  
+MarketUnitName varchar(50),  
+BU varchar(50),  
+[AD Project #] INT,  
+ESA_All_FTE decimal (10,2),  
+ESA_FTE_Zero decimal (10,2),  
+ESA_FTE_0_25 decimal (10,2),  
+ESA_FTE_25_50 decimal (10,2),  
+ESA_FTE_50_80 decimal (10,2),  
+ESA_FTE_80 decimal (10,2),  
+Available_Hours decimal (10,2),  
+MPS_Effort decimal (10,2),  
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),  
+Actual_Effort decimal (10,2),  
+Effort_Account_Compliance decimal (10,2),  
+Associate_Compliance_Percent decimal (10,2)  
+)  
+  
+INSERT INTO #Account_Compliance_AD  
+SELECT DISTINCT  
+a.Parent_Accountid  
+,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU,sum(a.[AD Project #])  
+,ISNULL(SUM(a.ESA_All_FTE), 0)  
+,ISNULL(SUM(a.ESA_FTE_Zero), 0)  
+,ISNULL(SUM(a.ESA_FTE_0_25), 0)  
+,ISNULL(SUM(a.ESA_FTE_25_50), 0)  
+,ISNULL(SUM(a.ESA_FTE_50_80), 0)  
+,ISNULL(SUM(a.ESA_FTE_80), 0)  
+,ISNULL(SUM(a.Available_Hours), 0)  
+,ISNULL(SUM(a.MPS_Effort), 0)  
+,ISNULL(SUM(a.Work_Profile_AD), 0)  
+,ISNULL(SUM(a.MAS_Effort), 0)  
+,ISNULL(SUM(a.Actual_Effort), 0)  
+,ISNULL(((ISNULL(SUM(a.Actual_Effort), 0)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)  
+,ISNULL(((ISNULL(SUM(a.ESA_FTE_80), 0)) / NULLIF(SUM(a.ESA_All_FTE), 0) * 100), 0)  
+FROM #Account_Compliance_AD_temp A  
+GROUP BY a.Parent_Accountid,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU  
+  
+--Integrated Account Compliance Split  
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_INTG_Cal') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_INTG_Cal END    
+    
+CREATE TABLE #Account_Compliance_INTG_Cal(       
+Parent_Accountid varchar (50),     
+EmployeeID varchar(15),  ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #Account_Compliance_INTG_Cal    
+ SELECT DISTINCT        
+  Parent_Accountid        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND [Associate_Account_Compliance] =0  and Project_Scope not in ('AD','AVM','')),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope not in ('AD','AVM','') AND B.[Associate_Account_Compliance] >0 and B.[Associate_Account_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope not in ('AD','AVM','') AND B.[Associate_Account_Compliance] >25 and B.[Associate_Account_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope not in ('AD','AVM','') AND B.[Associate_Account_Compliance] >50 and B.[Associate_Account_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND Project_Scope not in ('AD','AVM','') AND B.[Associate_Account_Compliance] >80),0)    
+ FROM #Associate_Total_account_Compliance AS A         
+ GROUP BY Parent_Accountid        
+    ,EmployeeID    
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_INTEG_temp') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_INTEG_temp END     
+CREATE table #Account_Compliance_INTEG_temp   
+    
+(    
+    
+Parent_Accountid Char(15),    
+Parent_AccountName varchar (100),    
+Vertical varchar (50),   
+MarketUnitName varchar(50),  
+BU varchar(50),  
+[INTEGRATED Project #] INT,  
+ESA_All_FTE decimal (10,2),    
+ESA_FTE_Zero decimal (10,2),    
+ESA_FTE_0_25 decimal (10,2),    
+ESA_FTE_25_50 decimal (10,2),    
+ESA_FTE_50_80 decimal (10,2),    
+ESA_FTE_80 decimal (10,2),    
+Available_Hours decimal (10,2),    
+MPS_Effort decimal (10,2),   
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),    
+Actual_Effort decimal (10,2),    
+Effort_Account_Compliance decimal (10,2),    
+Associate_Compliance_Percent decimal (10,2)    
+)    
+    
+    
+INSERT INTO #Account_Compliance_INTEG_temp  
+    
+SELECT DISTINCT    
+  a.Parent_Accountid    
+  ,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU , S.Project#  
+  ,ISNULL(SUM(a.Avaialble_FTE_Below_M), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_Zero), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_0_25), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_25_50), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_50_80), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_80), 0)    
+  ,ISNULL(SUM(a.Available_Hours), 0)    
+  ,ISNULL(SUM(a.MPS_Effort), 0)   
+  ,ISNULL(SUM(a.Work_Profile_AD), 0)  
+  ,ISNULL(SUM(a.MAS_Effort), 0)    
+  ,ISNULL(SUM(a.Actual_Effort), 0)    
+  ,ISNULL(((ISNULL(SUM(a.Actual_Effort), 0)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)    
+  ,ISNULL(((ISNULL(SUM(B.ESA_FTE_80), 0)) / NULLIF(SUM(a.Avaialble_FTE_Below_M), 0) * 100), 0)    
+ FROM #Associate_Total_account_Compliance A    
+ LEFT JOIN #Account_Compliance_INTG_Cal B ON a.Parent_Accountid = b.Parent_Accountid AND A.EmployeeID = b.EmployeeID    
+  left join #ScopeProject S on A.Parent_Accountid =S.Parent_Accountid and A.Project_scope=S.ProjectScope  
+  and a.Vertical=s.Vertical  and a.MarketUnitName=s.PracticeOwner  
+ where A.Project_scope not in ('AD','AVM','')  
+ GROUP BY a.Parent_Accountid,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU,S.Project#  
+  
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_INTEG') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_INTEG END   
+CREATE table #Account_Compliance_INTEG  
+(  
+Parent_Accountid Char(15),  
+Parent_AccountName varchar (100),  
+Vertical varchar (50),  
+MarketUnitName varchar(50),  
+BU varchar(50),  
+[INTEGRATED Project #] INT,  
+ESA_All_FTE decimal (10,2),  
+ESA_FTE_Zero decimal (10,2),  
+ESA_FTE_0_25 decimal (10,2),  
+ESA_FTE_25_50 decimal (10,2),  
+ESA_FTE_50_80 decimal (10,2),  
+ESA_FTE_80 decimal (10,2),  
+Available_Hours decimal (10,2),  
+MPS_Effort decimal (10,2),  
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),  
+Actual_Effort decimal (10,2),  
+Effort_Account_Compliance decimal (10,2),  
+Associate_Compliance_Percent decimal (10,2)  
+)  
+--select * from #Account_Compliance_INTEG_temp  
+INSERT INTO #Account_Compliance_INTEG  
+  
+SELECT DISTINCT  
+a.Parent_Accountid  
+,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU,sum(a.[INTEGRATED Project #])  
+,ISNULL(SUM(a.ESA_All_FTE), 0)  
+,ISNULL(SUM(a.ESA_FTE_Zero), 0)  
+,ISNULL(SUM(a.ESA_FTE_0_25), 0)  
+,ISNULL(SUM(a.ESA_FTE_25_50), 0)  
+,ISNULL(SUM(a.ESA_FTE_50_80), 0)  
+,ISNULL(SUM(a.ESA_FTE_80), 0)  
+,ISNULL(SUM(a.Available_Hours), 0)  
+,ISNULL(SUM(a.MPS_Effort), 0)  
+,ISNULL(SUM(a.Work_Profile_AD), 0)  
+,ISNULL(SUM(a.MAS_Effort), 0)  
+,ISNULL(SUM(a.Actual_Effort), 0)  
+,ISNULL(((ISNULL(SUM(a.Actual_Effort), 0)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)  
+,ISNULL(((ISNULL(SUM(a.ESA_FTE_80), 0)) / NULLIF(SUM(a.ESA_All_FTE), 0) * 100), 0)  
+FROM #Account_Compliance_INTEG_temp A  
+GROUP BY a.Parent_Accountid,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU  
+  
+ --Account compliance for all scope.  
+  
+ IF OBJECT_ID(N'tempdb..#Associate_Accountcompliance_all') IS NOT NULL    
+BEGIN DROP TABLE #Associate_Accountcompliance_all END    
+  
+ CREATE Table #Associate_Accountcompliance_all    
+(    
+    
+Parent_Accountid Char(15),    
+Parent_AccountName varchar (100),    
+Vertical varchar (50),  
+MarketUnitName varchar(50),  
+BU varchar(50),  
+EmployeeID varchar(15),    
+Department_Name varchar(100),  
+Avaialble_FTE_Below_M decimal (10,2),    
+Available_Hours decimal (10,2),    
+MPS_Effort decimal (10,2),   
+Work_Profile_AD decimal (10,2),   
+MAS_Effort decimal (10,2),    
+Actual_Effort decimal (10,2),    
+Associate_Account_Compliance decimal (10,2)    
+)    
+ ---FTE<5 Removal Changes  
+  
+INSERT INTO  #Associate_Accountcompliance_all    
+    
+SELECT  DISTINCT A.Parent_Accountid,A.Parent_AccountName,A.Vertical,C.PracticeOwner,  
+C.MARKET_BU,A.EmployeeID,A.Department_Name,  
+sum(A.Avaialble_FTE_Below_M),sum(A.Available_Hours),    
+sum(A.MPS_Effort),sum(A.Work_Profile_AD),Sum(A.MAS_Effort),sum(A.Actual_Effort),ISNULL(((SUM(A.Actual_Effort)) / NULLIF(SUM(A.Available_Hours),0) * 100), 0)   
+from #AssociateActual_Final A    
+JOIN [ADPR].[Input_Data_AssociateRAW] C ON a.EsaProjectID=C.EsaProjectID AND C.OnBoardStatus='Onboarded'  
+JOIN [ADPR].Project_Compliance P ON A.EsaProjectID=P.EsaProjectid  
+where C.DE_Inscope='In scope'   
+Group by  A.Parent_Accountid,A.Parent_AccountName,A.Vertical,A.EmployeeID,A.Department_Name,C.PracticeOwner,C.MARKET_BU  
+  
+CREATE Table #Associate_Total_account_Compliance_all    
+(    
+    
+Parent_Accountid Char(15),    
+Parent_AccountName varchar (100),    
+Vertical varchar (50),  
+MarketUnitName varchar(50),  
+BU varchar(50),  
+EmployeeID varchar(15),    
+Avaialble_FTE_Below_M decimal (10,2),    
+Available_Hours decimal (10,2),    
+MPS_Effort decimal (10,2),    
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),    
+Actual_Effort decimal (10,2),    
+Associate_Account_Compliance decimal (10,2)    
+)    
+    
+INSERT INTO #Associate_Total_account_Compliance_all    
+    
+ SELECT DISTINCT    
+  Parent_Accountid    
+  ,Parent_AccountName,Vertical,  
+  MarketUnitName,BU,  
+  EmployeeID  
+  ,SUM(Avaialble_FTE_Below_M)    
+  ,SUM(Available_Hours)    
+  ,SUM(MPS_Effort)  
+  ,SUM(Work_Profile_AD)  
+  ,SUM(MAS_Effort)    
+  ,SUM(Actual_Effort)    
+  ,sum(Associate_Account_Compliance)   
+ FROM #Associate_Accountcompliance_all   
+ GROUP BY Parent_Accountid    
+    ,Parent_AccountName,Vertical,MarketUnitName,BU, EmployeeID   
+  
+IF OBJECT_ID(N'tempdb..#Account_Compliance_Cal') IS NOT NULL    
+BEGIN DROP TABLE #Account_Compliance_Cal END    
+    
+CREATE TABLE #Account_Compliance_Cal(       
+Parent_Accountid varchar (50),     
+EmployeeID varchar(15),  
+Vertical varchar (50),   
+ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #Account_Compliance_Cal    
+ SELECT DISTINCT        
+  Parent_Accountid        
+  ,EmployeeID   
+  ,Vertical  
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance_all B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND [Associate_Account_Compliance] =0 AND A.Vertical=B.Vertical),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance_all B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND A.Vertical=B.Vertical AND B.[Associate_Account_Compliance] >0 and B.[Associate_Account_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_Total_account_Compliance_all B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND A.Vertical=B.Vertical AND B.[Associate_Account_Compliance] >25 and B.[Associate_Account_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance_all B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND A.Vertical=B.Vertical AND B.[Associate_Account_Compliance] >50 and B.[Associate_Account_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_Total_account_Compliance_all B     
+  WHERE A.Parent_Accountid = B.Parent_Accountid AND A.EmployeeID = B.EmployeeID AND A.Vertical=B.Vertical AND B.[Associate_Account_Compliance] >80),0)    
+ FROM #Associate_Total_account_Compliance_all AS A         
+ GROUP BY Parent_Accountid        
+    ,EmployeeID,Vertical   
+  
+   
+CREATE table #Account_Compliance(   
+Parent_Accountid Char(15),    
+Parent_AccountName varchar (100),    
+Vertical varchar (50),   
+MarketUnitName varchar(50),  
+BU varchar(50),  
+ESA_All_FTE decimal (10,2),    
+ESA_FTE_Zero decimal (10,2),    
+ESA_FTE_0_25 decimal (10,2),    
+ESA_FTE_25_50 decimal (10,2),    
+ESA_FTE_50_80 decimal (10,2),    
+ESA_FTE_80 decimal (10,2),    
+Available_Hours decimal (10,2),    
+MPS_Effort decimal (10,2),   
+Work_Profile_AD decimal (10,2),  
+MAS_Effort decimal (10,2),    
+Actual_Effort decimal (10,2),    
+Effort_Account_Compliance decimal (10,2),    
+Associate_Compliance_Percent decimal (10,2)    
+)    
+    
+    
+INSERT INTO #Account_Compliance    
+    
+SELECT DISTINCT    
+  a.Parent_Accountid    
+  ,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU   
+  ,ISNULL(SUM(a.Avaialble_FTE_Below_M), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_Zero), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_0_25), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_25_50), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_50_80), 0)    
+  ,ISNULL(SUM(B.ESA_FTE_80), 0)    
+  ,ISNULL(SUM(a.Available_Hours), 0)    
+  ,ISNULL(SUM(a.MPS_Effort), 0)   
+  ,ISNULL(SUM(a.Work_Profile_AD), 0)  
+  ,ISNULL(SUM(a.MAS_Effort), 0)    
+  ,ISNULL(SUM(a.Actual_Effort), 0)    
+  ,ISNULL(((ISNULL(SUM(a.Actual_Effort), 0)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)    
+  ,ISNULL(((ISNULL(SUM(B.ESA_FTE_80), 0)) / NULLIF(SUM(a.Avaialble_FTE_Below_M), 0) * 100), 0)    
+ FROM #Associate_Total_account_Compliance_all A    
+ LEFT JOIN #Account_Compliance_Cal B ON a.Parent_Accountid = b.Parent_Accountid AND A.EmployeeID = b.EmployeeID and a.Vertical=B.Vertical   
+ GROUP BY a.Parent_Accountid    
+    ,a.Parent_AccountName,A.Vertical,A.MarketUnitName,A.BU    
+  
+TRUNCATE table [ADPR].[Account_Compliance]  
+INSERT INTO [ADPR].[Account_Compliance]  
+SELECT DISTINCT    
+ Parent_Accountid    
+ ,Parent_AccountName    
+ ,Vertical,  
+ MarketUnitName,BU  
+ ,ESA_All_FTE    
+ ,ESA_FTE_Zero    
+ ,ESA_FTE_0_25    
+ ,ESA_FTE_25_50    
+ ,ESA_FTE_50_80    
+ ,ESA_FTE_80    
+ ,Available_Hours    
+ ,MPS_Effort    
+ ,Work_Profile_AD  
+ ,MAS_Effort    
+ ,Actual_Effort    
+ ,Effort_Account_Compliance    
+ ,Associate_Compliance_Percent    
+FROM #Account_Compliance  
+  
+  
+TRUNCATE table [ADPR].Account_Compliance_AD   
+    
+INSERT INTO [ADPR].Account_Compliance_AD    
+  
+--select * from [dbo].Adp_Account_Compliance_AD where Parent_Accountid='2000559'  
+    
+    
+SELECT DISTINCT    
+ Parent_Accountid    
+ ,Parent_AccountName    
+ ,Vertical,  
+ MarketUnitName,BU,[AD Project #]  
+ ,ESA_All_FTE    
+ ,ESA_FTE_Zero    
+ ,ESA_FTE_0_25    
+ ,ESA_FTE_25_50    
+ ,ESA_FTE_50_80    
+ ,ESA_FTE_80    
+ ,Available_Hours    
+ ,MPS_Effort    
+ ,Work_Profile_AD  
+ ,MAS_Effort    
+ ,Actual_Effort    
+ ,Effort_Account_Compliance    
+ ,Associate_Compliance_Percent    
+FROM #Account_Compliance_AD   
+  
+  
+  
+TRUNCATE table [ADPR].Account_Compliance_AM    
+    
+INSERT INTO [ADPR].Account_Compliance_AM    
+    
+    
+SELECT DISTINCT    
+ Parent_Accountid    
+ ,Parent_AccountName    
+ ,Vertical,  
+ MarketUnitName,BU,[AVM Project #]  
+ ,ESA_All_FTE    
+ ,ESA_FTE_Zero    
+ ,ESA_FTE_0_25    
+ ,ESA_FTE_25_50    
+ ,ESA_FTE_50_80    
+ ,ESA_FTE_80    
+ ,Available_Hours    
+ ,MPS_Effort    
+ ,Work_Profile_AD  
+ ,MAS_Effort    
+ ,Actual_Effort    
+ ,Effort_Account_Compliance    
+ ,Associate_Compliance_Percent    
+FROM #Account_Compliance_AM   
+  
+  
+TRUNCATE table [ADPR].Account_Compliance_INTEG    
+    
+INSERT INTO [ADPR].Account_Compliance_INTEG    
+    
+    
+SELECT DISTINCT    
+ Parent_Accountid    
+ ,Parent_AccountName    
+ ,Vertical,  
+ MarketUnitName,BU,[INTEGRATED Project #]  
+ ,ESA_All_FTE    
+,ESA_FTE_Zero    
+ ,ESA_FTE_0_25    
+ ,ESA_FTE_25_50    
+ ,ESA_FTE_50_80    
+ ,ESA_FTE_80    
+ ,Available_Hours    
+ ,MPS_Effort    
+ ,Work_Profile_AD  
+ ,MAS_Effort    
+ ,Actual_Effort    
+ ,Effort_Account_Compliance    
+ ,Associate_Compliance_Percent    
+FROM #Account_Compliance_INTEG  
+  
+ ------------------- ACCOUNT COMPLIANCE END -------------------------------  
+  
+  
+  
+ --------------------- SBU Compliance Below M ----------------------  
+  IF OBJECT_ID(N'tempdb..#Associate_BUcompliance_all') IS NOT NULL    
+BEGIN DROP TABLE #Associate_BUcompliance_all END    
+      
+CREATE Table #Associate_BUcompliance_all(        
+SBU varchar (100),   
+EsaProjectID varchar(15),  
+EmployeeID varchar(15),        
+Department_Name varchar(100),        
+Avaialble_FTE_Below_M decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),        
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Associate_BU_Compliance decimal (10,2)        
+)        
+ ---FTE<5 Removal Changes  
+     
+INSERT INTO #Associate_BUcompliance_all           
+SELECT DISTINCT a.SBU,a.EsaProjectID,a.EmployeeID,a.Department_Name ,sum(a.Avaialble_FTE_Below_M),sum(a.Available_Hours),        
+sum(a.MPS_Effort),sum(a.Work_Profile_AD),Sum(a.MAS_Effort),sum(a.Actual_Effort),  
+ISNULL(((SUM(a.Actual_Effort)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0) from #AssociateActual_Final A        
+JOIN [ADPR].[Input_Data_AssociateRAW] C ON a.EsaProjectID=C.EsaProjectID AND C.OnBoardStatus='Onboarded'  
+JOIN [ADPR].Project_Compliance P ON A.EsaProjectID=P.EsaProjectid  
+where C.DE_Inscope='In scope'        
+GROUP BY A.SBU,a.EsaProjectID,EmployeeID,Department_Name      
+    
+ IF OBJECT_ID(N'tempdb..#SBU_Compliance_Cal') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_Cal END    
+    
+CREATE TABLE #SBU_Compliance_Cal(       
+SBU varchar (50),     
+EmployeeID varchar(15),  ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #SBU_Compliance_Cal    
+SELECT DISTINCT        
+  SBU        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance_all B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND [Associate_BU_Compliance] =0),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance_all B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND B.[Associate_BU_Compliance] >0 and B.[Associate_BU_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_BUcompliance_all B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND B.[Associate_BU_Compliance] >25 and B.[Associate_BU_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance_all B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND B.[Associate_BU_Compliance] >50 and B.[Associate_BU_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance_all B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND B.[Associate_BU_Compliance] >80),0)    
+ FROM #Associate_BUcompliance_all AS A         
+ GROUP BY SBU        
+    ,EmployeeID    
+    
+IF OBJECT_ID(N'tempdb..#SBU_Compliance_Below_M') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_Below_M END    
+CREATE table #SBU_Compliance_Below_M           
+(        
+SBU varchar (50),        
+ESA_FTE decimal (10,2),        
+ESA_FTE_Zero  decimal (10,2),        
+ESA_FTE_0_25  decimal (10,2),        
+ESA_FTE_25_50  decimal (10,2),        
+ESA_FTE_50_80  decimal (10,2),        
+ESA_FTE_80  decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),      
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+BU_Effort_Compliance_Percent decimal (10,2),        
+Associate_Compliance_Percent decimal (10,2),    
+)        
+           
+INSERT INTO #SBU_Compliance_Below_M         
+ SELECT DISTINCT        
+  a.SBU        
+  ,ISNULL(SUM(Avaialble_FTE_Below_M), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_Zero), 0)           
+  ,ISNULL(SUM(F.ESA_FTE_0_25), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_25_50), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_50_80), 0)        
+  --,ISNULL(SUM(F.ESA_FTE_80), 0)          
+  ,null  
+  ,ISNULL(SUM(Available_Hours), 0)        
+  ,ISNULL(SUM(MPS_Effort), 0)      
+  ,ISNULL(SUM(Work_Profile_AD), 0)      
+  ,ISNULL(SUM(MAS_Effort), 0)        
+  ,ISNULL(SUM(Actual_Effort), 0)        
+  ,ISNULL(((ISNULL(SUM(Actual_Effort), 0)) / NULLIF(SUM(Available_Hours), 0) * 100), 0)        
+  --,ISNULL(((ISNULL(SUM(F.ESA_FTE_80), 0)) / NULLIF(SUM(Avaialble_FTE_Below_M), 0) * 100), 0)    
+  ,null  
+ FROM #Associate_BUcompliance_all A        
+ LEFT JOIN #SBU_Compliance_Cal F ON a.SBU = f.SBU AND A.EmployeeID = f.EmployeeID       
+ GROUP BY a.SBU     
+  
+--FTE Fix  
+  
+ select SBU,sum(Avaialble_FTE_Below_M) as 'ESA_FTE_80' into #Associate_80_SBU_Total  from #Associate_BUcompliance_all where [Associate_BU_Compliance] >80 group by SBU  
+  
+ update a set a.ESA_FTE_80=b.ESA_FTE_80  
+ from #SBU_Compliance_Below_M a  
+ join #Associate_80_SBU_Total b on a.SBU = b.SBU  
+  
+   
+ select SBU,sum(Avaialble_FTE_Below_M) as 'Avaialble_FTE_Below_M' into #Associate_BUcompliance_all_Total from #Associate_BUcompliance_all group by SBU  
+  
+ update a set   
+ a.Associate_Compliance_Percent= ISNULL((ISNULL(a.ESA_FTE_80,0) / NULLIF(b.Avaialble_FTE_Below_M,0))*100,0)  
+ from #SBU_Compliance_Below_M a  
+ join #Associate_BUcompliance_all_Total b on a.SBU = b.SBU  
+  
+  
+  
+ ---------------------End SBU Below M -------------------------  
+  
+    
+  
+    
+  IF OBJECT_ID(N'tempdb..#Associate_BUcompliance_all_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #Associate_BUcompliance_all_All_Grade END    
+      
+CREATE Table #Associate_BUcompliance_all_All_Grade(        
+SBU varchar (100),  
+EsaProjectID varchar(15),  
+EmployeeID varchar(15),        
+Department_Name varchar(100),        
+Avaialble_FTE_Below_M decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),        
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Associate_BU_Compliance decimal (10,2)        
+)        
+  ---FTE<5 Removal Changes  
+     
+INSERT INTO #Associate_BUcompliance_all_All_Grade           
+SELECT DISTINCT a.SBU,a.EsaProjectID,a.EmployeeID,a.Department_Name ,sum(a.Avaialble_FTE_Below_M),sum(a.Available_Hours),        
+sum(a.MPS_Effort),sum(a.Work_Profile_AD),Sum(a.MAS_Effort),sum(a.Actual_Effort),ISNULL(((SUM(a.Actual_Effort)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)   
+from #AssociateActual_Final_All_Grade A        
+JOIN [ADPR].[Input_Data_AssociateRAW] C ON a.EsaProjectID=C.EsaProjectID AND C.OnBoardStatus='Onboarded'  
+JOIN [ADPR].Project_Compliance P ON A.EsaProjectID=P.EsaProjectid  
+where C.DE_Inscope='In scope'        
+GROUP BY A.SBU,a.EsaProjectID,EmployeeID,Department_Name     
+  
+---AVM,AD and INTEG changes using ALL Grade--  
+  
+IF OBJECT_ID(N'tempdb..#Associate_BUcompliance') IS NOT NULL    
+BEGIN DROP TABLE #Associate_BUcompliance END    
+    
+CREATE Table #Associate_BUcompliance(       
+SBU varchar (100),        
+EmployeeID varchar(15),        
+Department_Name varchar(100),        
+Project_Scope varchar(50),      
+Avaialble_FTE_Below_M decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),        
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+Associate_BU_Compliance decimal (10,2)        
+)        
+  ---FTE<5 Removal Changes  
+    
+INSERT INTO #Associate_BUcompliance        
+        
+SELECT DISTINCT a.SBU,a.EmployeeID,a.Department_Name,C.PROJECTSCOPE ,sum(a.Avaialble_FTE_Below_M),sum(a.Available_Hours),        
+sum(a.MPS_Effort),sum(a.Work_Profile_AD),Sum(a.MAS_Effort),sum(a.Actual_Effort),  
+ISNULL(((SUM(a.Actual_Effort)) / NULLIF(SUM(a.Available_Hours), 0) * 100), 0)   
+from #AssociateActual_Final A        
+JOIN [ADPR].[Input_Data_AssociateRAW] C ON a.EsaProjectID=C.EsaProjectID AND C.OnBoardStatus='Onboarded'        
+JOIN [ADPR].Project_Compliance P ON A.EsaProjectID=P.EsaProjectid  
+where C.DE_Inscope='In scope'        
+GROUP BY A.SBU,EmployeeID,Department_Name,C.PROJECTSCOPE      
+     
+ --SELECT * FROM #Associate_BUcompliance ORDER BY EmployeeID    
+    
+IF OBJECT_ID(N'tempdb..#ScopeBU') IS NOT NULL    
+BEGIN DROP TABLE #ScopeBU END    
+    
+select A.SBU,C.ProjectScope,count(A.EsaProjectID) as 'Project#' Into #ScopeBU from #AssociateActual_Final A      
+JOIN [ADPR].[Input_Data_AssociateRAW] C ON A.parent_accountid=C.parentaccountid   
+and a.EsaProjectID=C.EsaProjectID AND C.OnBoardStatus='Onboarded'    
+JOIN [ADPR].Project_Compliance P ON A.EsaProjectID=P.EsaProjectid  
+group by A.SBU,C.ProjectScope      
+           
+TRUNCATE table [ADPR].SBU_Compliance_RAW        
+INSERT INTO   [ADPR].SBU_Compliance_RAW         
+SELECT DISTINCT  SBU ,        
+EmployeeID ,        
+Department_Name ,        
+Avaialble_FTE_Below_M ,        
+Available_Hours ,        
+MPS_Effort ,       
+Work_Profile_AD,      
+MAS_Effort ,        
+Actual_Effort ,        
+Associate_BU_Compliance   from #Associate_BUcompliance      
+    
+--SELECT * FROM #Associate_BUcompliance ORDER BY SBU,EmployeeID    
+    
+IF OBJECT_ID(N'tempdb..#SBU_Compliance_AVM_Cal') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_AVM_Cal END    
+    
+CREATE TABLE #SBU_Compliance_AVM_Cal(       
+SBU varchar (50),     
+EmployeeID varchar(15),    
+ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #SBU_Compliance_AVM_Cal    
+SELECT DISTINCT        
+  SBU        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND [Associate_BU_Compliance] =0  and Project_Scope='AVM'),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope='AVM' AND B.[Associate_BU_Compliance] >0 and B.[Associate_BU_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope='AVM' AND B.[Associate_BU_Compliance] >25 and B.[Associate_BU_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope='AVM' AND B.[Associate_BU_Compliance] >50 and B.[Associate_BU_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope='AVM' AND B.[Associate_BU_Compliance] >80),0)    
+ FROM #Associate_BUcompliance AS A         
+ GROUP BY SBU        
+    ,EmployeeID    
+    
+IF OBJECT_ID(N'tempdb..#SBU_Compliance_AVM') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_AVM END    
+    
+CREATE table #SBU_Compliance_AVM(        
+SBU varchar (50),        
+ESA_FTE decimal (10,2),        
+ESA_FTE_Zero  decimal (10,2),        
+ESA_FTE_0_25  decimal (10,2),        
+ESA_FTE_25_50  decimal (10,2),        
+ESA_FTE_50_80  decimal (10,2),        
+ESA_FTE_80  decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),      
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+BU_Effort_Compliance_Percent decimal (10,2),        
+Associate_Compliance_Percent decimal (10,2)        
+)        
+          
+INSERT INTO #SBU_Compliance_AVM          
+ SELECT DISTINCT        
+  A.SBU        
+  ,ISNULL(SUM(Avaialble_FTE_Below_M), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_Zero), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_0_25), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_25_50), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_50_80), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_80), 0)        
+  ,ISNULL(SUM(Available_Hours), 0)        
+  ,ISNULL(SUM(MPS_Effort), 0)      
+  ,ISNULL(SUM(Work_Profile_AD), 0)      
+  ,ISNULL(SUM(MAS_Effort), 0)        
+  ,ISNULL(SUM(Actual_Effort), 0)        
+  ,ISNULL(((ISNULL(SUM(Actual_Effort), 0)) / NULLIF(SUM(Available_Hours), 0) * 100), 0)        
+  ,ISNULL(((ISNULL(SUM(ESA_FTE_80), 0)) / NULLIF(SUM(Avaialble_FTE_Below_M), 0) * 100), 0)        
+ FROM #Associate_BUcompliance A        
+ LEFT JOIN #SBU_Compliance_AVM_Cal F ON a.SBU = f.SBU AND A.EmployeeID = f.EmployeeID         
+ WHERE A.Project_scope='AVM' GROUP BY a.SBU        
+    
+ IF OBJECT_ID(N'tempdb..#BUDATA_AVM') IS NOT NULL    
+BEGIN DROP TABLE #BUDATA_AVM END    
+    
+SELECT DISTINCT SBU,ESA_FTE,ESA_FTE_Zero,ESA_FTE_0_25,ESA_FTE_25_50,ESA_FTE_50_80,ESA_FTE_80,Available_Hours,        
+MPS_Effort,Work_Profile_AD,MAS_Effort,        
+Actual_Effort,        
+BU_Effort_Compliance_Percent,        
+Associate_Compliance_Percent        
+INTO #BUDATA_AVM        
+FROM #SBU_Compliance_AVM        
+       
+INSERT INTO #SBU_Compliance_AVM           
+ SELECT DISTINCT        
+  'GRAND TOTAL' AS [SBU]        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE)) AS 'ESA_FTE'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_Zero)) AS 'ESA FTE with TSC %=0'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_0_25)) AS 'ESA FTE with TSC %>0 to 25'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_25_50)) AS 'ESA FTE with TSC %>25 to 50'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_50_80)) AS 'ESA FTE with TSC %>50 to 80'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_80)) AS 'ESA FTE with TSC %>80'        
+  ,SUM(CONVERT(DECIMAL(10,2), Available_Hours)) AS 'Available_Hours'        
+  ,SUM(CONVERT(DECIMAL(10,2), MPS_Effort)) AS 'MPS_Effort'       
+  ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'      
+  ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'        
+  ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'        
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)), 0) * 100,0) AS 'BU_Effort_Compliance'        
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)), 0) * 100,0) AS 'Associate_Compliance'            
+ FROM #BUDATA_AVM          
+      
+TRUNCATE table [ADPR].SBU_Compliance_AM        
+        
+INSERT INTO [ADPR].SBU_Compliance_AM        
+SELECT        
+ [SBU] AS 'SBU'        
+ ,ESA_FTE, ESA_FTE_Zero,ESA_FTE_0_25,ESA_FTE_25_50,ESA_FTE_50_80,ESA_FTE_80        
+ ,Available_Hours        
+ ,MPS_Effort        
+ ,Work_Profile_AD      
+ ,MAS_Effort        
+ ,Actual_Effort        
+ ,BU_Effort_Compliance_Percent AS [BU Effort Compliance%(All)]        
+ ,Associate_Compliance_Percent AS [Associate_BU_Compliance%]        
+FROM #SBU_Compliance_AVM        
+ORDER BY CASE   WHEN [SBU] = 'GRAND TOTAL' THEN 1        
+ ELSE 0        
+END, [SBU]     
+    
+    
+    
+ IF OBJECT_ID(N'tempdb..#SBU_Compliance_AD_Cal') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_AD_Cal END    
+CREATE TABLE #SBU_Compliance_AD_Cal(       
+SBU varchar (50),     
+EmployeeID varchar(15),    
+ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #SBU_Compliance_AD_Cal    
+SELECT DISTINCT        
+  SBU        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND [Associate_BU_Compliance] =0  and Project_Scope='AD'),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope='AD' AND B.[Associate_BU_Compliance] >0 and B.[Associate_BU_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope='AD' AND B.[Associate_BU_Compliance] >25 and B.[Associate_BU_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B       WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope='AD' AND B.[Associate_BU_Compliance] >50 and B.[Associate_BU_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope='AD' AND B.[Associate_BU_Compliance] >80),0)    
+ FROM #Associate_BUcompliance AS A         
+ GROUP BY SBU        
+    ,EmployeeID    
+    
+IF OBJECT_ID(N'tempdb..#SBU_Compliance_AD') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_AD END    
+    
+CREATE table #SBU_Compliance_AD(        
+SBU varchar (50),        
+ESA_FTE decimal (10,2),        
+ESA_FTE_Zero  decimal (10,2),        
+ESA_FTE_0_25  decimal (10,2),        
+ESA_FTE_25_50  decimal (10,2),        
+ESA_FTE_50_80  decimal (10,2),        
+ESA_FTE_80  decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),      
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+BU_Effort_Compliance_Percent decimal (10,2),        
+Associate_Compliance_Percent decimal (10,2)        
+)           
+INSERT INTO #SBU_Compliance_AD     
+ SELECT DISTINCT        
+  A.SBU        
+  ,ISNULL(SUM(Avaialble_FTE_Below_M), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_Zero), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_0_25), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_25_50), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_50_80), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_80), 0)        
+  ,ISNULL(SUM(Available_Hours), 0)        
+  ,ISNULL(SUM(MPS_Effort), 0)      
+  ,ISNULL(SUM(Work_Profile_AD), 0)      
+  ,ISNULL(SUM(MAS_Effort), 0)        
+  ,ISNULL(SUM(Actual_Effort), 0)        
+  ,ISNULL(((ISNULL(SUM(Actual_Effort), 0)) / NULLIF(SUM(Available_Hours), 0) * 100), 0)        
+  ,ISNULL(((ISNULL(SUM(ESA_FTE_80), 0)) / NULLIF(SUM(Avaialble_FTE_Below_M), 0) * 100), 0)        
+ FROM #Associate_BUcompliance A        
+ LEFT JOIN #SBU_Compliance_AD_Cal F ON a.SBU = f.SBU AND A.EmployeeID = f.EmployeeID         
+ WHERE A.Project_scope='AD' GROUP BY a.SBU        
+    
+ IF OBJECT_ID(N'tempdb..#BUDATA_AD') IS NOT NULL    
+BEGIN DROP TABLE #BUDATA_AD END    
+    
+SELECT DISTINCT SBU,ESA_FTE,ESA_FTE_Zero,ESA_FTE_0_25,ESA_FTE_25_50,ESA_FTE_50_80,ESA_FTE_80,Available_Hours,        
+MPS_Effort,Work_Profile_AD,MAS_Effort,        
+Actual_Effort,        
+BU_Effort_Compliance_Percent,        
+Associate_Compliance_Percent        
+INTO #BUDATA_AD        
+FROM #SBU_Compliance_AD        
+      
+      
+INSERT INTO #SBU_Compliance_AD            
+ SELECT DISTINCT        
+  'GRAND TOTAL' AS [SBU]        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE)) AS 'ESA_FTE'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_Zero)) AS 'ESA FTE with TSC %=0'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_0_25)) AS 'ESA FTE with TSC %>0 to 25'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_25_50)) AS 'ESA FTE with TSC %>25 to 50'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_50_80)) AS 'ESA FTE with TSC %>50 to 80'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_80)) AS 'ESA FTE with TSC %>80'        
+  ,SUM(CONVERT(DECIMAL(10,2), Available_Hours)) AS 'Available_Hours'        
+  ,SUM(CONVERT(DECIMAL(10,2), MPS_Effort)) AS 'MPS_Effort'       
+  ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'      
+  ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'        
+  ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'        
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)), 0) * 100,0) AS 'BU_Effort_Compliance'        
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)), 0) * 100,0) AS 'Associate_Compliance'            
+ FROM #BUDATA_AD          
+      
+TRUNCATE table [ADPR].SBU_Compliance_AD        
+       
+INSERT INTO [ADPR].SBU_Compliance_AD          
+SELECT        
+ [SBU] AS 'SBU'        
+ ,ESA_FTE, ESA_FTE_Zero,ESA_FTE_0_25,ESA_FTE_25_50,ESA_FTE_50_80,ESA_FTE_80        
+ ,Available_Hours        
+ ,MPS_Effort        
+ ,Work_Profile_AD      
+ ,MAS_Effort    
+ ,Actual_Effort        
+ ,BU_Effort_Compliance_Percent AS [BU Effort Compliance%(All)]        
+ ,Associate_Compliance_Percent AS [Associate_BU_Compliance%]        
+FROM #SBU_Compliance_AD        
+ORDER BY CASE   WHEN [SBU] = 'GRAND TOTAL' THEN 1        
+ ELSE 0        
+END, [SBU]        
+      
+ IF OBJECT_ID(N'tempdb..#SBU_Compliance_INTEG_Cal') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_INTEG_Cal END    
+CREATE TABLE #SBU_Compliance_INTEG_Cal(       
+SBU varchar (50),     
+EmployeeID varchar(15),    
+ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #SBU_Compliance_INTEG_Cal    
+SELECT DISTINCT        
+  SBU        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND [Associate_BU_Compliance] =0  and Project_Scope not in ('AD','AVM','')),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope not in ('AD','AVM','') AND B.[Associate_BU_Compliance] >0 and B.[Associate_BU_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope not in ('AD','AVM','') AND B.[Associate_BU_Compliance] >25 and B.[Associate_BU_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope not in ('AD','AVM','') AND B.[Associate_BU_Compliance] >50 and B.[Associate_BU_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND Project_Scope not in ('AD','AVM','') AND B.[Associate_BU_Compliance] >80),0)    
+ FROM #Associate_BUcompliance AS A         
+ GROUP BY SBU        
+    ,EmployeeID    
+    
+ IF OBJECT_ID(N'tempdb..#SBU_Compliance_INTEG') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_INTEG END    
+    
+CREATE table #SBU_Compliance_INTEG(        
+SBU varchar (50),        
+ESA_FTE decimal (10,2),        
+ESA_FTE_Zero  decimal (10,2),        
+ESA_FTE_0_25  decimal (10,2),        
+ESA_FTE_25_50  decimal (10,2),        
+ESA_FTE_50_80  decimal (10,2),        
+ESA_FTE_80  decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),      
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+BU_Effort_Compliance_Percent decimal (10,2),        
+Associate_Compliance_Percent decimal (10,2)        
+)        
+        
+        
+INSERT INTO #SBU_Compliance_INTEG         
+ SELECT DISTINCT        
+  a.SBU        
+  ,ISNULL(SUM(Avaialble_FTE_Below_M), 0)        
+ ,ISNULL(SUM(F.ESA_FTE_Zero), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_0_25), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_25_50), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_50_80), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_80), 0)       
+,ISNULL(SUM(Available_Hours), 0)        
+  ,ISNULL(SUM(MPS_Effort), 0)      
+  ,ISNULL(SUM(Work_Profile_AD), 0)      
+  ,ISNULL(SUM(MAS_Effort), 0)        
+  ,ISNULL(SUM(Actual_Effort), 0)        
+  ,ISNULL(((ISNULL(SUM(Actual_Effort), 0)) / NULLIF(SUM(Available_Hours), 0) * 100), 0)        
+  ,ISNULL(((ISNULL(SUM(ESA_FTE_80), 0)) / NULLIF(SUM(Avaialble_FTE_Below_M), 0) * 100), 0)        
+ FROM #Associate_BUcompliance A        
+ LEFT JOIN #SBU_Compliance_INTEG_Cal F ON a.SBU = f.SBU AND A.EmployeeID = f.EmployeeID         
+  where A.Project_scope not in ('AD','AVM','')        
+ GROUP BY a.SBU     
+     
+IF OBJECT_ID(N'tempdb..#BUDATA_INTEG') IS NOT NULL    
+BEGIN DROP TABLE #BUDATA_INTEG END    
+   SELECT DISTINCT SBU,ESA_FTE,ESA_FTE_Zero,ESA_FTE_0_25,ESA_FTE_25_50,ESA_FTE_50_80,ESA_FTE_80,Available_Hours,        
+MPS_Effort,Work_Profile_AD,MAS_Effort,        
+Actual_Effort,        
+BU_Effort_Compliance_Percent,        
+Associate_Compliance_Percent        
+INTO #BUDATA_INTEG        
+FROM #SBU_Compliance_INTEG        
+      
+      
+INSERT INTO #SBU_Compliance_INTEG        
+        
+ SELECT DISTINCT        
+  'GRAND TOTAL' AS [SBU]        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE)) AS 'ESA_FTE'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_Zero)) AS 'ESA FTE with TSC %=0'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_0_25)) AS 'ESA FTE with TSC %>0 to 25'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_25_50)) AS 'ESA FTE with TSC %>25 to 50'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_50_80)) AS 'ESA FTE with TSC %>50 to 80'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_80)) AS 'ESA FTE with TSC %>80'        
+  ,SUM(CONVERT(DECIMAL(10,2), Available_Hours)) AS 'Available_Hours'        
+  ,SUM(CONVERT(DECIMAL(10,2), MPS_Effort)) AS 'MPS_Effort'       
+  ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'      
+  ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'        
+  ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'        
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)), 0) * 100,0) AS 'BU_Effort_Compliance'        
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)), 0) * 100,0) AS 'Associate_Compliance'        
+        
+ FROM #BUDATA_INTEG          
+      
+TRUNCATE table [ADPR].SBU_Compliance_INTEG        
+        
+INSERT INTO [ADPR].SBU_Compliance_INTEG        
+        
+SELECT        
+ [SBU] AS 'SBU'        
+ ,ESA_FTE, ESA_FTE_Zero,ESA_FTE_0_25,ESA_FTE_25_50,ESA_FTE_50_80,ESA_FTE_80        
+ ,Available_Hours        
+ ,MPS_Effort        
+ ,Work_Profile_AD      
+ ,MAS_Effort        
+ ,Actual_Effort        
+ ,BU_Effort_Compliance_Percent AS [BU Effort Compliance%(All)]        
+ ,Associate_Compliance_Percent AS [Associate_BU_Compliance%]        
+FROM #SBU_Compliance_INTEG        
+ORDER BY CASE   WHEN [SBU] = 'GRAND TOTAL' THEN 1        
+ ELSE 0        
+END, [SBU]     
+  
+---------END -----------  
+  
+    
+ IF OBJECT_ID(N'tempdb..#SBU_Compliance_Cal_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_Cal_All_Grade END    
+    
+CREATE TABLE #SBU_Compliance_Cal_All_Grade(       
+SBU varchar (50),     
+EmployeeID varchar(15),    
+ESA_FTE_Zero decimal (10,2),        
+ESA_FTE_0_25 decimal (10,2),        
+ESA_FTE_25_50 decimal (10,2),        
+ESA_FTE_50_80 decimal (10,2),        
+ESA_FTE_80 decimal (10,2))     
+    
+INSERT INTO #SBU_Compliance_Cal_All_Grade    
+SELECT DISTINCT        
+  SBU        
+  ,EmployeeID        
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance_all_All_Grade B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND [Associate_BU_Compliance] =0),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance_all_All_Grade B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND B.[Associate_BU_Compliance] >0 and B.[Associate_BU_Compliance]  <=25),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M)  FROM #Associate_BUcompliance_all_All_Grade B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND B.[Associate_BU_Compliance] >25 and B.[Associate_BU_Compliance]  <=50),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance_all_All_Grade B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND B.[Associate_BU_Compliance] >50 and B.[Associate_BU_Compliance]  <=80),0)    
+  ,ISNULL((SELECT SUM(Avaialble_FTE_Below_M) FROM #Associate_BUcompliance_all_All_Grade B     
+  WHERE A.SBU=B.SBU AND A.EmployeeID = B.EmployeeID AND B.[Associate_BU_Compliance] >80),0)    
+ FROM #Associate_BUcompliance_all_All_Grade AS A         
+ GROUP BY SBU        
+    ,EmployeeID    
+    
+ -------------------------- Total SBU Compliance -------------------------------------------    
+    
+ IF OBJECT_ID(N'tempdb..#SBU_Compliance_All_Grade') IS NOT NULL    
+BEGIN DROP TABLE #SBU_Compliance_All_Grade END    
+CREATE table #SBU_Compliance_All_Grade           
+(        
+SBU varchar (50),        
+ESA_FTE decimal (10,2),        
+ESA_FTE_Zero  decimal (10,2),        
+ESA_FTE_0_25  decimal (10,2),        
+ESA_FTE_25_50  decimal (10,2),        
+ESA_FTE_50_80  decimal (10,2),        
+ESA_FTE_80  decimal (10,2),        
+Available_Hours decimal (10,2),        
+MPS_Effort decimal (10,2),      
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),        
+BU_Effort_Compliance_Percent decimal (10,2),        
+Associate_Compliance_Percent decimal (10,2),    
+)        
+           
+INSERT INTO #SBU_Compliance_All_Grade         
+ SELECT DISTINCT        
+  a.SBU        
+  ,ISNULL(SUM(Avaialble_FTE_Below_M), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_Zero), 0)           
+  ,ISNULL(SUM(F.ESA_FTE_0_25), 0)        
+  ,ISNULL(SUM(F.ESA_FTE_25_50), 0)        
+  --,ISNULL(SUM(F.ESA_FTE_50_80), 0)     
+  ,null  
+  ,ISNULL(SUM(F.ESA_FTE_80), 0)          
+  ,ISNULL(SUM(Available_Hours), 0)        
+  ,ISNULL(SUM(MPS_Effort), 0)      
+  ,ISNULL(SUM(Work_Profile_AD), 0)      
+  ,ISNULL(SUM(MAS_Effort), 0)        
+  ,ISNULL(SUM(Actual_Effort), 0)        
+  ,ISNULL(((ISNULL(SUM(Actual_Effort), 0)) / NULLIF(SUM(Available_Hours), 0) * 100), 0)        
+  --,ISNULL(((ISNULL(SUM(F.ESA_FTE_80), 0)) / NULLIF(SUM(Avaialble_FTE_Below_M), 0) * 100), 0)    
+  ,null  
+ FROM #Associate_BUcompliance_all_All_Grade A        
+ LEFT JOIN #SBU_Compliance_Cal_All_Grade F ON a.SBU = f.SBU AND A.EmployeeID = f.EmployeeID       
+ GROUP BY a.SBU    
+   
+ --FTE Fix  
+  
+ select SBU,sum(Avaialble_FTE_Below_M) as 'ESA_FTE_80' into #Associate_80_SBU_All_Grade_Total  from #Associate_BUcompliance_all_All_Grade where [Associate_BU_Compliance] >80 group by SBU  
+  
+ update a set a.ESA_FTE_80=b.ESA_FTE_80  
+ from #SBU_Compliance_All_Grade a  
+ join #Associate_80_SBU_All_Grade_Total b on a.SBU = b.SBU  
+  
+   
+ select SBU,sum(Avaialble_FTE_Below_M) as 'Avaialble_FTE_Below_M' into #Associate_BUcompliance_all_All_Grade_Total from #Associate_BUcompliance_all_All_Grade group by SBU  
+  
+ update a set   
+ a.Associate_Compliance_Percent= ISNULL((ISNULL(a.ESA_FTE_80,0) / NULLIF(b.Avaialble_FTE_Below_M,0))*100,0)  
+ from #SBU_Compliance_All_Grade a  
+ join #Associate_BUcompliance_all_All_Grade_Total b on a.SBU = b.SBU  
+  
+-------------------------------------------------------    
+--ESA TS Compliance calculation--  
+ IF OBJECT_ID(N'tempdb..#EDSTimesheet') IS NOT NULL  BEGIN DROP TABLE #EDSTimesheet END    
+select ESAProjectID,ISNULL(SUM(hours), 0)as actual,submitterid   
+into #EDSTimesheet from     
+[DiscoverEDS].[EDS].[TimesheetDetail_All]    
+where [TimesheetSubmissionDate] BETWEEN @StartDate AND @EndDate    
+group by EsaProjectID,submitterid  
+  
+ IF OBJECT_ID(N'tempdb..#tempfinal_available') IS NOT NULL  BEGIN DROP TABLE #tempfinal_available END    
+  
+SELECT B.EsaProjectID,B.EmployeeID,ET.actual,SUM(F.Available_Hours) as Available_Hours INTO #tempfinal_available  
+FROM #EDSTimesheet ET  
+JOIN [ADPR].Associate_Compliance_RAW B ON ET.ESAProjectID=B.EsaProjectID and ET.submitterid=B.EmployeeID  
+join #FTE_BM F on ET.ESAProjectID=f.Project_ID and ET.submitterid=F.associate_id  
+JOIN ADPR.Project_Compliance P ON ET.ESAProjectID= P.EsaProjectid  
+GROUP BY B.EsaProjectID,B.EmployeeID,ET.actual  
+  
+IF OBJECT_ID(N'tempdb..#ESATSComplianceFinal') IS NOT NULL  BEGIN DROP TABLE #ESATSComplianceFinal END    
+select distinct b.sbu,ISNULL(((ISNULL(sum(a.actual), 0)) / NULLIF(sum(a.Available_Hours), 0) * 100), 0) as 'ESA TS Compliance(Overall)'  
+into #ESATSComplianceFinal  
+from #tempfinal_available a  
+join [ADPR].[Input_Excel_Associate](nolock) b on a.EsaProjectID=b.ESAProjectID   
+group by b.sbu  
+  
+  
+--select * from #ESATSComplianceFinal   
+  
+------New FTE calculation End--------  
+  
+  
+--Eligible project calculation--    
+IF OBJECT_ID(N'tempdb..#EligibleProjects') IS NOT NULL BEGIN DROP TABLE #EligibleProjects END    
+  
+create table #EligibleProjects  
+(  
+SBU varchar(100),  
+Project_ID nvarchar(50),  
+ESA_FTE_Count decimal (10,2)  
+)   
+  
+ IF OBJECT_ID(N'tempdb..#OnboardedProjects') IS NOT NULL BEGIN DROP TABLE #OnboardedProjects END    
+  
+  
+CREATE TABLE #OnboardedProjects  
+(  
+SBU varchar(100),  
+Project_ID nvarchar(50),  
+ESA_FTE_Count decimal (10,2)  
+)  
+  
+IF OBJECT_ID(N'tempdb..#ExemptionProjects') IS NOT NULL BEGIN DROP TABLE #ExemptionProjects END    
+  
+SELECT DISTINCT PM.ProjectID,PM.EsaProjectID--,PM.ProjectName,'Ticketingmodule' as ExemptionFor           
+INTO #ExemptionProjects          
+FROM SmartGovernance.[dbo].[ApplensExemptionDetails](NOLOCK) ED           
+LEFT JOIN SmartGovernance. [MAS].[ExemptionReason](NOLOCK) ER          
+ ON ED.ReasonID = ER.ID          
+LEFT JOIN SmartGovernance.[dbo].ModuleExemptionDetails(NOLOCK) ME           
+ ON ME.ApplensExemptionID = ED.ID          
+INNER JOIN [AppvisionLens].AVL.MAS_ProjectMaster(NOLOCK) PM           
+ ON ED.AccessLevelID = PM.EsaProjectID          
+WHERE (ED.OptedFor='Exemption' AND ED.Status='Approved' AND ED.IsDeleted='0')           
+OR (ME.ModuleId=4 AND ME.OptedFor='Exemption' AND ME.Status='Approved' AND ME.IsDeleted=0)   
+  
+------------------------------New FTE Logic --------------------  
+IF @ReportType = 'ADM'   
+BEGIN  
+  
+INSERT INTO #EligibleProjects  
+SELECT DISTINCT B.SBU,B.EsaProjectID,  
+SUM(ISNull(A.ESA_FTE_Count,0))  AS ESA_FTE_Count   
+FROM #FTE_BM A  
+JOIN [ADPR].Associate_Projects B On A.Project_ID=B.EsaProjectID  
+GROUP BY B.SBU,B.EsaProjectID  
+  
+END  
+  
+ELSE BEGIN  
+  
+  INSERT INTO #EligibleProjects  
+  SELECT DISTINCT A.SBU,A.EsaProjectID,SUM(ISNull(B.ESA_FTE_Count,0))  AS ESA_FTE_Count   
+  FROM [ADPR].[NonADM_EligibleProjects](NOLOCK) A  
+  LEFT JOIN #FTE_BM B On A.EsaProjectID=B.Project_ID WHERE A.ReportType=@ReportType  
+  AND A.EsaProjectID NOT IN (SELECT EsaProjectID FROM ADPR.NonADM_NotEligibleProjects WHERE IsDeleted=0 AND ValidTillDate>=GETDATE())  
+  GROUP BY A.SBU,A.EsaProjectID   
+  
+END  
+  
+INSERT INTO #OnboardedProjects  
+SELECT DISTINCT SBU,A.EsaProjectid,SUM(ISNull([Overall #FTE],0)) as ESA_FTE_Count --into #EligibleProjects    
+FROM  [ADPR].[Input_Data_AssociateRaw](NOLOCK) A  
+JOIN ADPR.Project_Compliance P ON A.EsaProjectID=P.EsaProjectid  
+ WHERE A.OnBoardStatus='OnBoarded'  
+ GROUP BY SBU,A.EsaProjectid  
+    
+IF OBJECT_ID(N'tempdb..#EligibleFinal') IS NOT NULL BEGIN DROP TABLE #EligibleFinal END    
+    
+select  SBU,count(distinct Project_ID) As 'No of Projects(DE In-Scope)',sum(ESA_FTE_Count) as 'Total FTE(DE In-Scope)'     
+into #EligibleFinal from #EligibleProjects group by SBU    
+    
+    
+IF OBJECT_ID(N'tempdb..#OnboardFinal') IS NOT NULL BEGIN DROP TABLE #OnboardFinal END    
+    
+select  SBU,count(distinct Project_ID) As 'No of Projects(Applens Adoption)',sum(ESA_FTE_Count) as 'Total FTE(Applens Adoption)'     
+into #OnboardFinal  from #OnboardedProjects group by SBU    
+    
+--select * from #OnboardFinal    
+IF OBJECT_ID(N'tempdb..#FinalCal') IS NOT NULL BEGIN DROP TABLE #FinalCal END    
+    
+select A.sbu,A.[No of Projects(DE In-Scope)],A.[Total FTE(DE In-Scope)],B.[No of Projects(Applens Adoption)],    
+B.[Total FTE(Applens Adoption)],C.[ESA TS Compliance(Overall)] into #FinalCal    
+from  #EligibleFinal A    
+ left join #OnboardFinal B on A.SBU=B.SBU    
+ left Join #ESATSComplianceFinal C on C.SBU=A.SBU     
+    
+    
+   
+  
+IF OBJECT_ID(N'tempdb..#SBUComplianceTotal') IS NOT NULL BEGIN DROP TABLE #SBUComplianceTotal END    
+-------------------------------------------------------    
+   
+Create Table #SBUComplianceTotal    
+(    
+SBU varchar (50),        
+ESA_FTE decimal (10,2),     
+[ESA FTE(Below_M)] decimal (10,2),     
+ESA_FTE_Zero  decimal (10,2),        
+ESA_FTE_0_25  decimal (10,2),        
+ESA_FTE_25_50  decimal (10,2),        
+ESA_FTE_50_80  decimal (10,2),        
+ESA_FTE_80  decimal (10,2),     
+[ESA FTE 80(Below_M)] decimal(10,2),    
+Available_Hours decimal (10,2),    
+[Available Hours(Below_M)] decimal (10,2),    
+MPS_Effort decimal (10,2),      
+Work_Profile_AD decimal (10,2),      
+MAS_Effort decimal (10,2),        
+Actual_Effort decimal (10,2),    
+[Actual Effort(Below_M)] decimal (10,2),    
+BU_Effort_Compliance_Percent decimal (10,2),        
+Associate_Compliance_Percent decimal (10,2),    
+BU_Effort_Compliance_Percent_Below_M decimal (10,2),        
+Associate_Compliance_Percent_Below_M decimal (10,2),    
+[No of Projects DE Eligible] decimal (10,2),    
+[DE Eligible Total FTE] decimal (10,2),    
+[No of Projects Adoption Eligible] decimal (10,2),    
+[Adoption Total FTE] decimal (10,2),    
+[ESA TS Compliance (Overall)] decimal (10,2)    
+)    
+    
+INSERT INTO #SBUComplianceTotal           
+SELECT        
+ c.[SBU] AS 'SBU'        
+ ,a.ESA_FTE,b.ESA_FTE AS [ESA FTE(Below_M)],  
+  b.ESA_FTE_Zero,b.ESA_FTE_0_25,b.ESA_FTE_25_50,b.ESA_FTE_50_80,  
+  a.ESA_FTE_80,  
+  b.ESA_FTE_80 AS [ESA FTE 80(Below_M)]    
+ ,a.Available_Hours      
+ ,b.Available_Hours As [Available Hours(Below_M)]    
+ ,a.MPS_Effort        
+ ,a.Work_Profile_AD      
+ ,a.MAS_Effort        
+ ,a.Actual_Effort     
+ ,b.Actual_Effort AS [Actual Effort(Below_M)]    
+ ,a.BU_Effort_Compliance_Percent AS [BU Effort Compliance%(All)]        
+ ,a.Associate_Compliance_Percent AS [Associate_BU_Compliance%(All)]    
+ ,b.BU_Effort_Compliance_Percent AS [BU Effort Compliance%(Below_M)]        
+ ,b.Associate_Compliance_Percent AS [Associate_BU_Compliance%(Below_M)]    
+ ,C.[No of Projects(DE In-Scope)]    
+ ,C.[Total FTE(DE In-Scope)]    
+ ,C.[No of Projects(Applens Adoption)]    
+ ,C.[Total FTE(Applens Adoption)]    
+ ,C.[ESA TS Compliance(Overall)]    
+FROM #FinalCal c     
+left join #SBU_Compliance_Below_M b on c.SBU = b.SBU     
+left join #SBU_Compliance_All_Grade a on a.SBU=c.sbu   
+    
+IF OBJECT_ID(N'tempdb..#BUDATA_All_Grade') IS NOT NULL BEGIN DROP TABLE #BUDATA_All_Grade END       
+    
+SELECT DISTINCT SBU,ESA_FTE,[ESA FTE(Below_M)],ESA_FTE_Zero,ESA_FTE_0_25,ESA_FTE_25_50,ESA_FTE_50_80,ESA_FTE_80,[ESA FTE 80(Below_M)],    
+Available_Hours,[Available Hours(Below_M)],        
+MPS_Effort,Work_Profile_AD,MAS_Effort,        
+Actual_Effort,[Actual Effort(Below_M)],        
+BU_Effort_Compliance_Percent,        
+Associate_Compliance_Percent,    
+BU_Effort_Compliance_Percent_Below_M,        
+Associate_Compliance_Percent_Below_M,    
+[No of Projects DE Eligible],    
+[DE Eligible Total FTE],    
+[No of Projects Adoption Eligible],    
+[Adoption Total FTE],    
+[ESA TS Compliance (Overall)]    
+INTO #BUDATA_All_Grade        
+FROM #SBUComplianceTotal        
+        
+INSERT INTO #SBUComplianceTotal        
+ SELECT DISTINCT        
+  'GRAND TOTAL' AS [SBU]        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE)) AS 'ESA_FTE'     
+  ,SUM(CONVERT(DECIMAL(10,2), [ESA FTE(Below_M)])) AS 'ESA FTE(Below_M)'     
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_Zero)) AS 'ESA FTE with TSC %=0'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_0_25)) AS 'ESA FTE with TSC %>0 to 25'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_25_50)) AS 'ESA FTE with TSC %>25 to 50'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_50_80)) AS 'ESA FTE with TSC %>50 to 80'        
+  ,SUM(CONVERT(DECIMAL(10,2), ESA_FTE_80)) AS 'ESA FTE with TSC %>80'     
+  ,SUM(CONVERT(DECIMAL(10,2), [ESA FTE 80(Below_M)])) AS 'ESA FTE 80(Below_M)'    
+  ,SUM(CONVERT(DECIMAL(10,2), Available_Hours)) AS 'Available_Hours'     
+  ,SUM(CONVERT(DECIMAL(10,2), [Available Hours(Below_M)])) AS 'Available Hours(Below_M)'    
+  ,SUM(CONVERT(DECIMAL(10,2), MPS_Effort)) AS 'MPS_Effort'       
+  ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'      
+  ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'        
+  ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'     
+  ,SUM(CONVERT(DECIMAL(10,2), [Actual Effort(Below_M)])) AS 'Actual Effort(Below_M)'    
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)), 0) * 100,0) AS 'BU_Effort_Compliance'        
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)), 0) * 100,0) AS 'Associate_Compliance'    
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), [Actual Effort(Below_M)])) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), [Available Hours(Below_M)])), 0) * 100,0) AS 'BU_Effort_Compliance_Percent_Below_M'        
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), [ESA FTE 80(Below_M)])) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), [ESA FTE(Below_M)])), 0) * 100,0) AS 'Associate_Compliance_Percent_Below_M'    
+  ,SUM(CONVERT(DECIMAL(10,2), [No of Projects DE Eligible])) AS 'No of Projects DE Eligible'     
+  ,SUM(CONVERT(DECIMAL(10,2), [DE Eligible Total FTE])) AS 'DE Eligible Total FTE'     
+  ,SUM(CONVERT(DECIMAL(10,2), [No of Projects Adoption Eligible])) AS 'No of Projects Adoption Eligible'     
+  ,SUM(CONVERT(DECIMAL(10,2), [Adoption Total FTE])) AS 'Adoption Total FTE'     
+  ,AVG(CONVERT(DECIMAL(10,2), [ESA TS Compliance (Overall)])) AS 'ESA TS Compliance (Overall)'       
+ FROM #BUDATA_All_Grade       
+    
+TRUNCATE table [ADPR].SBU_Compliance        
+        
+INSERT INTO [ADPR].SBU_Compliance           
+SELECT        
+[SBU] AS 'SBU'        
+,ESA_FTE, ESA_FTE_Zero,ESA_FTE_0_25,ESA_FTE_25_50,ESA_FTE_50_80,ESA_FTE_80        
+,Available_Hours        
+,MPS_Effort        
+,Work_Profile_AD      
+,MAS_Effort        
+,Actual_Effort        
+,BU_Effort_Compliance_Percent AS [BU Effort Compliance%(All)]        
+,Associate_Compliance_Percent AS [Associate_BU_Compliance%(All)]     
+,[ESA FTE(Below_M)]    
+,[ESA FTE 80(Below_M)]    
+,[Available Hours(Below_M)]    
+,[Actual Effort(Below_M)]    
+,[BU_Effort_Compliance_Percent_Below_M]    
+,[Associate_Compliance_Percent_Below_M]    
+,[No of Projects DE Eligible]    
+,[DE Eligible Total FTE]    
+,[No of Projects Adoption Eligible]    
+,[Adoption Total FTE]    
+,[ESA TS Compliance (Overall)]    
+FROM #SBUComplianceTotal     
+ORDER BY CASE   WHEN [SBU] = 'GRAND TOTAL' THEN 1        
+ ELSE 0         
+END, [SBU]    
+  
+  
+   
+  
+     
+ END TRY      
+  BEGIN CATCH      
+ DECLARE @ErrorMessage VARCHAR(8000);      
+ SELECT @ErrorMessage = ERROR_MESSAGE()      
+  --INSERT Error          
+  EXEC [AppVisionLens].[dbo].AVL_InsertError '[ADPR].[Adp_AssociateData_Monthly] ', @ErrorMessage, '',''      
+  RETURN @ErrorMessage      
+  END CATCH         
+      
+END

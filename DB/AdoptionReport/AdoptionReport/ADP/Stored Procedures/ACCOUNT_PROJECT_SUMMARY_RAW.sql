@@ -652,16 +652,11 @@ SELECT [SBU Delivery (PC2Geo mapping)],[Overall FTE],[ADM FTE],[Overall #FTE wit
 [INTEGRATED Scope-BU Associate Compliance% (ADM)],[BU Associate Compliance% (ADM)]
  FROM #SBU_FINAL where [SBU Delivery (PC2Geo mapping)] not in ('LATAM')
 
----------  Service Details -----
-Select  PCT.EsaProjectid AS [ESA Project ID],MS.ServiceName As [Service Name],Count(TD.Ticketid) As [Ticket Volume],Sum(Td.EffortTillDate) AS [Effort]
-from[Adp].[Project_Compliance] (NoLock) PCT
-INNER JOIN AppVisionLens.Avl.Mas_projectMaster (NoLock)  PM ON PCT.EsaProjectid=PM.ESAProjectID AND PM.ISdeleted=0
-INNER JOIN AppVisionLens.[AVL].[Tk_TRN_TicketDetail] (NoLock) TD ON TD.ProjectID=PM.ProjectID AND Td.IsDeleted=0
-INNER JOIN AppVisionLens.[AVL].[TK_MAS_Service] (NoLock) MS ON MS.ServiceID=TD.ServiceID
-Where Convert(date,Td.OpenDateTime) >= @startdate and Convert(date,Td.OpenDateTime) <= @endDate
-Group by PCT.EsaProjectid,MS.ServiceName,TD.Serviceid,MS.Serviceid
+---------
 
 --- Inserting into tables
+  
+
 
 IF @mode='weekly'  
 BEGIN  
@@ -783,7 +778,7 @@ END TRY
  DECLARE @ErrorMessage VARCHAR(8000);  
  SELECT @ErrorMessage = ERROR_MESSAGE()  
   --INSERT Error      
-  EXEC [$(AppVisionLens)].dbo.AVL_InsertError '[dbo].[ACCOUNT_PROJECT_SUMMARY_RAW]  ', @ErrorMessage, '',''  
+  EXEC [AppVisionLens].dbo.AVL_InsertError '[dbo].[ACCOUNT_PROJECT_SUMMARY_RAW]  ', @ErrorMessage, '',''  
   RETURN @ErrorMessage  
   END CATCH     
   

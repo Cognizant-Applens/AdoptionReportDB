@@ -1,4 +1,4 @@
-﻿CREATE Procedure [Adp].[AIA_AssociateData_Monthly]  
+﻿CREATE   PROCEDURE [ADP].[AIA_AssociateData_Monthly]  
   
 AS  
   
@@ -197,7 +197,7 @@ SELECT
   
  END AS UpdatedGrade INTO #Temp_Applens  
   
-FROM [$(AppVisionLens)].ESA.Associates  
+FROM [AppVisionLens].ESA.Associates  
   
   
 -- Query to get 'below M' associates i.e grade id greater than 50  
@@ -244,12 +244,12 @@ SELECT DISTINCT
  ,LG.IsNonESAAuthorized  
  ,AF.DE_Inscope INTO #Allocatedassoc  
 FROM #Associalte_Final_AVM AF  
-LEFT JOIN [$(AppVisionLens)].AVL.MAS_ProjectMaster PM  
+LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM  
  ON AF.Project_ID = PM.EsaProjectID  
-LEFT JOIN [$(AppVisionLens)].AVL.MAS_LoginMaster LG  
+LEFT JOIN [AppVisionLens].AVL.MAS_LoginMaster LG  
  ON PM.ProjectID = LG.ProjectID  
  AND AF.associate_id = lg.EmployeeID  
-LEFT JOIN [$(AppVisionLens)].AVL.Customer CS  
+LEFT JOIN [AppVisionLens].AVL.Customer CS  
  ON PM.CustomerID = CS.CustomerID  
 --LEFT JOIN ESA.BUParentAccounts PA  
 -- ON CS.ESA_AccountID = PA.ESA_AccountID  
@@ -267,10 +267,10 @@ SELECT DISTINCT
  ,LG.ProjectID  
  ,LG.IsNonESAAuthorized --B.DE_Inscope   
 INTO #TEMPR  
-FROM [$(AppVisionLens)].AVL.MAS_LoginMaster LG  
+FROM [AppVisionLens].AVL.MAS_LoginMaster LG  
 JOIN #Temp_BM_Applns APS  
  ON LG.EmployeeID = APS.associateid  
-LEFT JOIN [$(AppVisionLens)].AVL.MAS_ProjectMaster PM  
+LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM  
  ON LG.ProjectID = PM.ProjectID  
 LEFT JOIN [Adp].Input_Data_AssociateRAW AD  
  ON PM.EsaProjectID = ad.EsaProjectID  
@@ -308,9 +308,9 @@ FROM (SELECT DISTINCT
  FROM #TEMPR LG  
  JOIN #Temp_BM_Applns APS  
   ON LG.EmployeeID = APS.associateid  
- LEFT JOIN [$(AppVisionLens)].AVL.MAS_ProjectMaster PM  
+ LEFT JOIN [AppVisionLens].AVL.MAS_ProjectMaster PM  
   ON LG.ProjectID = PM.ProjectID  
- JOIN [$(AppVisionLens)].AVL.Customer CS  
+ JOIN [AppVisionLens].AVL.Customer CS  
   ON PM.CustomerID = CS.CustomerID  
  --JOIN ESA.BUParentAccounts PA  
  -- ON CS.ESA_AccountID = PA.ESA_AccountID  
@@ -420,10 +420,10 @@ INSERT INTO #MPS_Effort_APP
   ,ISNULL(SUM(c.Hours),0) As 'MPS_Effort'  
   
   FROM #Loginmaster_associate tmp  
- LEFT JOIN [$(AppVisionLens)].AVL.TM_PRJ_Timesheet B  
+ LEFT JOIN [AppVisionLens].AVL.TM_PRJ_Timesheet B  
   ON tmp.UserID = b.SubmitterId  
   AND B.TimesheetDate BETWEEN @StartDate AND @EndDate  
- LEFT JOIN [$(AppVisionLens)].AVL.TM_TRN_TimesheetDetail C  ON b.TimesheetId = C.TimesheetId AND B.ProjectID=c.ProjectId   
+ LEFT JOIN [AppVisionLens].AVL.TM_TRN_TimesheetDetail C  ON b.TimesheetId = C.TimesheetId AND B.ProjectID=c.ProjectId   
   
  GROUP BY Parent_Accountid  
     ,Parent_AccountName  
@@ -456,10 +456,10 @@ INSERT INTO #MPS_Effort_Infra
   ,IsNonESAAuthorized  
   ,ISNULL(SUM(D.Hours),0) As 'MPS_Effort'  
    FROM #Loginmaster_associate tmp  
- LEFT JOIN [$(AppVisionLens)].AVL.TM_PRJ_Timesheet B  
+ LEFT JOIN [AppVisionLens].AVL.TM_PRJ_Timesheet B  
   ON tmp.UserID = b.SubmitterId  
   AND B.TimesheetDate BETWEEN @StartDate AND @EndDate  
-  LEFT join [$(AppVisionLens)].AVL.TM_TRN_InfraTimesheetDetail D on b.TimesheetId = D.TimesheetId AND B.ProjectID=d.ProjectId    
+  LEFT join [AppVisionLens].AVL.TM_TRN_InfraTimesheetDetail D on b.TimesheetId = D.TimesheetId AND B.ProjectID=d.ProjectId    
   
  GROUP BY Parent_Accountid  
     ,Parent_AccountName  
@@ -491,10 +491,10 @@ INSERT INTO #MPS_Effort_Workitem
   ,IsNonESAAuthorized  
   ,ISNULL(SUM(D.Hours),0) As 'MPS_Effort'  
    FROM #Loginmaster_associate tmp  
- LEFT JOIN [$(AppVisionLens)].AVL.TM_PRJ_Timesheet B  
+ LEFT JOIN [AppVisionLens].AVL.TM_PRJ_Timesheet B  
   ON tmp.UserID = b.SubmitterId  
   AND B.TimesheetDate BETWEEN @StartDate AND @EndDate    
-  LEFT join [$(AppVisionLens)].ADM.TM_TRN_WorkItemTimesheetDetail D on b.TimesheetId = D.TimesheetId --AND B.ProjectID=d.ProjectId    
+  LEFT join [AppVisionLens].ADM.TM_TRN_WorkItemTimesheetDetail D on b.TimesheetId = D.TimesheetId --AND B.ProjectID=d.ProjectId    
 
  GROUP BY Parent_Accountid  
     ,Parent_AccountName  
@@ -560,17 +560,16 @@ INSERT INTO #MAS_Effort
   ,IsNonESAAuthorized  
   ,ISNULL(SUM(b.Hours), 0) AS 'MAS_Effort'  
  FROM #Loginmaster_associate A  
- LEFT JOIN [CPCINCHPV004140].[DiscoverEDS].[EDS].[TimesheetDetail_All_Enhancement_AD] B  
+LEFT JOIN [DiscoverEDS].[EDS].[TimesheetDetail_All_Enhancement_AD] B  
   ON a.EmployeeID = b.[SubmitterID]  
   AND a.EsaProjectID = b.[ESAProjectID]  
-  AND B.[SubmitterDate] BETWEEN @StartDate AND @EndDate
+  AND B.[TimesheetSubmissionDate] BETWEEN @StartDate AND @EndDate   
  GROUP BY Parent_Accountid  
     ,Parent_AccountName  
     ,A.EsaProjectID,A.Projectname  
   ,A.EmployeeID,A.EmployeeName  
     ,IsNonESAAuthorized  
   
-   
   
 CREATE Table #Total_Effort  
 (  
@@ -2360,8 +2359,8 @@ INSERT INTO #SBU_Compliance_AVM_AM
   ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'  
   ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'  
   ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) * 100, 0),0) AS 'Associate_Compliance'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) * 100, 0),0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) , 0) * 100,0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) , 0) * 100,0) AS 'Associate_Compliance'  
   
  FROM #BUDATA_AM  
   
@@ -2585,8 +2584,8 @@ INSERT INTO #SBU_Compliance_AVM_AD
   ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'  
   ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'  
   ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) * 100, 0),0) AS 'Associate_Compliance'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) * 100, 0),0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) , 0) * 100,0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) , 0) * 100,0) AS 'Associate_Compliance'  
   
  FROM #BUDATA_AD  
   
@@ -2809,8 +2808,8 @@ INSERT INTO #SBU_Compliance_AVM_INTEG
   ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'  
   ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'  
   ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) * 100, 0),0) AS 'Associate_Compliance'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) * 100, 0),0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) , 0) * 100,0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) , 0) * 100,0) AS 'Associate_Compliance'  
   
  FROM #BUDATA_INTEG  
   
@@ -3035,8 +3034,8 @@ INSERT INTO #SBU_Compliance_AVM
   ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'  
   ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'  
   ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) * 100, 0),0) AS 'Associate_Compliance'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) * 100, 0),0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) , 0) * 100,0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) , 0) * 100,0) AS 'Associate_Compliance'  
   
  FROM #BUDATA  
   
@@ -3310,8 +3309,8 @@ INSERT INTO #VERTICAL_Compliance_AVM_AD
   ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'  
   ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'  
   ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) * 100, 0),0) AS 'BU_Effort_Compliance'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) * 100, 0),0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) , 0) * 100,0) AS 'BU_Effort_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) , 0) * 100,0) AS 'Associate_Compliance'  
   
 FROM #VERTICALDATA_AVM_AD  --group by vertical
 
@@ -3545,8 +3544,8 @@ INSERT INTO #VERTICAL_Compliance_AVM_AM
   ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'  
   ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'  
   ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) * 100, 0),0) AS 'BU_Effort_Compliance'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) * 100, 0),0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) , 0) * 100,0) AS 'BU_Effort_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) , 0) * 100,0) AS 'Associate_Compliance'  
   
 FROM #VERTICALDATA_AVM_AM  --group by vertical
 
@@ -3778,8 +3777,8 @@ INSERT INTO #VERTICAL_Compliance_AVM_INTEG
   ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'  
   ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'  
   ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) * 100, 0),0) AS 'BU_Effort_Compliance'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) * 100, 0),0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) , 0) * 100,0) AS 'BU_Effort_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) , 0) * 100,0) AS 'Associate_Compliance'  
   
 FROM #VERTICALDATA_AVM_INTEG  --group by vertical
 
@@ -4014,8 +4013,8 @@ INSERT INTO #VERTICAL_Compliance_AVM
   ,SUM(CONVERT(DECIMAL(10,2), Work_Profile_AD)) AS 'Work_Profile_AD'  
   ,SUM(CONVERT(DECIMAL(10,2), MAS_Effort)) AS 'MAS_Effort'  
   ,SUM(CONVERT(DECIMAL(10,2), Actual_Effort)) AS 'Actual_Effort'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) * 100, 0),0) AS 'BU_Effort_Compliance'  
-  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) * 100, 0),0) AS 'Associate_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), Actual_Effort)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), Available_Hours)) , 0) * 100,0) AS 'BU_Effort_Compliance'  
+  ,ISNULL(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE_80)) / NULLIF(SUM(CONVERT(DECIMAL(10, 2), ESA_FTE)) , 0) * 100,0) AS 'Associate_Compliance'  
   
 FROM #VERTICALDATA_AVM  --group by vertical
 
@@ -4254,7 +4253,7 @@ END TRY
  DECLARE @ErrorMessage VARCHAR(8000);  
  SELECT @ErrorMessage = ERROR_MESSAGE()  
   --INSERT Error      
-  EXEC [$(AppVisionLens)].[dbo].AVL_InsertError '[Adp].[AIA_AssociateData_Monthly] ', @ErrorMessage, '',''  
+  EXEC [AppVisionLens].[dbo].AVL_InsertError '[Adp].[AIA_AssociateData_Monthly] ', @ErrorMessage, '',''  
   RETURN @ErrorMessage  
   END CATCH     
   

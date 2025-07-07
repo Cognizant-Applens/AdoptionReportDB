@@ -27,21 +27,21 @@ SELECT  DISTINCT
    --,C.MARKET 
    --,A.BU as 'BU'
    ,ISNULL(A.[Overall #FTE],0) AS 'Overall #FTE'  
-   ,ISNULL(B.AVM_ESA_FTE,0) AS 'EAS FTE'  
+   ,ISNULL(B.AVM_ESA_FTE,0) AS 'EPS FTE'  
    ,ISNULL(A.[Overall #FTE with TSC %=0],0) AS 'Overall #FTE with TSC %=0'  
    ,ISNULL(A.[Overall #FTE with TSC %>0 to 25],0)AS 'Overall #FTE with TSC %>0 to 25'  
    ,ISNULL(A.[Overall #FTE with TSC %>25 to 50],0) AS 'Overall #FTE with TSC %>25 to 50'  
    ,ISNULL(A.[Overall #FTE with TSC %>50 to 80],0) AS 'Overall #FTE with TSC %>50 to 80'  
    ,ISNULL(A.[Overall #FTE with TSC %>80],0) AS 'Overall #FTE with TSC %>80'  
-   ,ISNULL(B.[AVM FTE with TSC %>80],0) AS 'EAS FTE with TSC %>80'  
+   ,ISNULL(B.[AVM FTE with TSC %>80],0) AS 'EPS FTE with TSC %>80'  
    ,ISNULL(a.[Available Hours],0) AS 'Available Hours (All)'  
-   ,ISNULL(B.Available_Hours,0) As 'Available Hours (EAS)'  
+   ,ISNULL(B.Available_Hours,0) As 'Available Hours (EPS)'  
    ,ISNULL(A.[Actual Effort],0) as 'Actual Effort (All)'  
-   ,ISNULL(B.Actual_Effort,0) as 'Actual Effort (EAS)'  
+   ,ISNULL(B.Actual_Effort,0) as 'Actual Effort (EPS)'  
    ,ISNULL(A.[Effort Account Compliance% (All)],0) as 'Account Effort Compliance% (All)'  
    ,ISNULL(a.All_Associate_Compliance_Percent,0) as 'Account Associate Compliance% (All)'  
-   ,ISNULL(B.[Effort Account Compliance% (AVM)],0) as 'Account Effort Compliance% (EAS)'  
-   ,ISNULL(B.AVM_Associate_Compliance_Percent,0) AS 'Account Associate Compliance% (EAS)'  
+   ,ISNULL(B.[Effort Account Compliance% (AVM)],0) as 'Account Effort Compliance% (EPS)'  
+   ,ISNULL(B.AVM_Associate_Compliance_Percent,0) AS 'Account Associate Compliance% (EPS)'  
   
 FROM [Adp].[Account_Compliance] A  
   
@@ -76,21 +76,21 @@ SELECT  DISTINCT
     ,D.[SBU] As 'Project_Department'  
     ,C.DE_Inscope As 'DE_Inscope'  
     ,ISNULL(A.[Overall #FTE],0) AS 'Overall #FTE'  
-    ,ISNULL(B.[AVM #FTE],0) AS 'EAS FTE'  
+    ,ISNULL(B.[AVM #FTE],0) AS 'EPS FTE'  
     ,ISNULL(A.[Overall #FTE with TSC %=0],0) As 'Overall #FTE with TSC %=0'  
     ,ISNULL(A.[Overall #FTE with TSC %>0 to 25],0) AS 'Overall #FTE with TSC %>0 to 25'  
     ,ISNULL(A.[Overall #FTE with TSC %>25 to 50],0) AS 'Overall #FTE with TSC %>25 to 50'  
     ,ISNULL(A.[Overall #FTE with TSC %>50 to 80],0) AS 'Overall #FTE with TSC %>50 to 80'  
     ,ISNULL(A.[Overall #FTE with TSC %>80],0) AS 'Overall #FTE with TSC %>80'  
-    ,ISNULL(B.[AVM #FTE with TSC %>80],0) AS 'EAS #FTE with TSC %>80'  
+    ,ISNULL(B.[AVM #FTE with TSC %>80],0) AS 'EPS #FTE with TSC %>80'  
     ,ISNULL(a.[Available Hours],0) AS 'Available Hours (All)'  
-    ,ISNULL(B.[Available Hours],0) As 'Available Hours (EAS)'  
+    ,ISNULL(B.[Available Hours],0) As 'Available Hours (EPS)'  
     ,ISNULL(A.[Actual Effort],0) as 'Actual Effort (All)'  
-    ,ISNULL(B.[Actual Effort],0) as 'Actual Effort (EAS)'  
+    ,ISNULL(B.[Actual Effort],0) as 'Actual Effort (EPS)'  
     ,ISNULL(a.[Effort Project Compliance% (All)],0) as 'Project Effort Compliance% (All)'  
     ,ISNULL(a.Associate_Project_Compliance_Percent,0) as 'Project Associate Compliance% (All)'  
-    ,ISNULL(B.[Effort Project Compliance% (AVM)],0) as 'Project Effort Compliance% (EAS)'  
-    ,ISNULL(B.AVMAssociate_Project_Compliance_Percent,0) AS 'Project Associate Compliance% (EAS)' 
+    ,ISNULL(B.[Effort Project Compliance% (AVM)],0) as 'Project Effort Compliance% (EPS)'  
+    ,ISNULL(B.AVMAssociate_Project_Compliance_Percent,0) AS 'Project Associate Compliance% (EPS)' 
 	,D.[CHILDPROJECT] as 'Child_Project' 
 	,C.PROJECTSCOPE
   
@@ -300,6 +300,7 @@ BEGIN
      @endDate,  
      getdate(),
 	 A.SBU  as 'MARKET UNIT NAME'
+
    
  FROM [Adp].[Project_Compliance] A  
    
@@ -310,7 +311,40 @@ BEGIN
  LEFT JOIN [adp].[input_excel_associate] D ON a.[EsaProjectID]=D.EsaProjectID   
    
  WHERE C.DE_Inscope IN('In scope','Yet to scope') and A.SBU not in ('LATAM')
-  
+ 
+DECLARE @CreatedDate DATE = FORMAT(GETDATE(),'yyyy-MM-dd')
+DECLARE @Count INT=0
+DECLARE @i INT=1
+
+CREATE TABLE Duplicate(
+ID INT IDENTITY (1,1),
+EsaProjectId NVARCHAR(50),
+)
+
+INSERT INTO Duplicate
+SELECT EsaProjectid FROM [AdoptionReport].[ADP].[Project_Compliance_Monthly] WHERE CONVERT(DATE,[Created datetime])= @CreatedDate
+GROUP BY EsaProjectid HAVING COUNT(*) >1
+
+--SELECT * FROM Duplicate
+
+SET @Count= (SELECT COUNT(*) FROM Duplicate)
+
+WHILE (@Count > 0)
+
+BEGIN
+
+DELETE FROM [AdoptionReport].[ADP].[Project_Compliance_Monthly] WHERE ID IN (
+SELECT MAX(A.ID) FROM [AdoptionReport].[ADP].[Project_Compliance_Monthly] A JOIN Duplicate B 
+ON A.EsaProjectid = B.EsaProjectid WHERE B.EsaProjectid IN (SELECT EsaProjectid FROM Duplicate WHERE ID=@i)
+)
+
+SET @i = @i+1
+SET @Count = @Count-1
+
+END
+
+DROP TABLE Duplicate
+
 END  
   
   
@@ -319,7 +353,7 @@ END TRY
  DECLARE @ErrorMessage VARCHAR(8000);  
  SELECT @ErrorMessage = ERROR_MESSAGE()  
   --INSERT Error      
-  EXEC [$(AppVisionLens)].dbo.AVL_InsertError '[dbo].[EAS_ACCOUNT_PROJECT_SUMMARY_RAW]  ', @ErrorMessage, '',''  
+  EXEC [AppVisionLens].dbo.AVL_InsertError '[dbo].[EAS_ACCOUNT_PROJECT_SUMMARY_RAW]  ', @ErrorMessage, '',''  
   RETURN @ErrorMessage  
   END CATCH     
   

@@ -1,0 +1,247 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>AdoptionReport</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>4.1</ProjectVersion>
+    <ProjectGuid>{38a387e7-06d3-44e9-97d6-f4f7c5d50e7c}</ProjectGuid>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql140DatabaseSchemaProvider</DSP>
+    <OutputType>Database</OutputType>
+    <RootPath>
+    </RootPath>
+    <RootNamespace>AdoptionReport</RootNamespace>
+    <AssemblyName>AdoptionReport</AssemblyName>
+    <ModelCollation>1033,CI</ModelCollation>
+    <DefaultFileStructure>BySchemaAndSchemaType</DefaultFileStructure>
+    <DeployToDatabase>True</DeployToDatabase>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetLanguage>CS</TargetLanguage>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SqlServerVerification>False</SqlServerVerification>
+    <IncludeCompositeObjects>True</IncludeCompositeObjects>
+    <TargetDatabaseSet>True</TargetDatabaseSet>
+    <DefaultCollation>SQL_Latin1_General_CP1_CI_AS</DefaultCollation>
+    <DefaultFilegroup>PRIMARY</DefaultFilegroup>
+    <SccProjectName>SAK</SccProjectName>
+    <SccProvider>SAK</SccProvider>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccLocalPath>SAK</SccLocalPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">11.0</VisualStudioVersion>
+    <!-- Default to the v11.0 targets path if the targets file for the current VS version is not found -->
+    <SSDTExists Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')">True</SSDTExists>
+    <VisualStudioVersion Condition="'$(SSDTExists)' == ''">11.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Condition="'$(SQLDBExtensionsRefPath)' != ''" Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <ItemGroup>
+    <Folder Include="Properties" />
+    <Folder Include="dbo\" />
+    <Folder Include="dbo\Tables\" />
+    <Folder Include="ADP\" />
+    <Folder Include="ADP\Tables\" />
+    <Folder Include="ADP\Stored Procedures\" />
+    <Folder Include="dbo\Stored Procedures\" />
+    <Folder Include="Security\" />
+    <Folder Include="DB Reference" />
+    <Folder Include="ADP\User Defined Types\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Include="ADP\Tables\CentralRepository_Allocation.sql" />
+    <Build Include="ADP\Tables\CentralRepository_HolidayDate.sql" />
+    <Build Include="ADP\Tables\centralrepository_SFDC_Account.sql" />
+    <Build Include="ADP\Tables\CentralRepository_SFDC_Financial_Ultimate_Parent_Account.sql" />
+    <Build Include="ADP\Tables\CentralRepository_Associate_Details.sql" />
+    <Build Include="ADP\Tables\CentralRepository_Current_ProjectManager.sql" />
+    <Build Include="ADP\Tables\CentralRepository_Project.sql" />
+    <Build Include="ADP\Tables\Project_Compliance_Monthly.sql" />
+    <Build Include="ADP\Tables\Project_Compliance_Weekly.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_Scope.sql" />
+    <Build Include="ADP\Tables\Input_Data_AssociateRAW.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance_RAW.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance_INTEG.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance_AVM_INTEG.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance_AVM_AM.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance_AVM_AD.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance_AVM.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance_AM.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance_AD.sql" />
+    <Build Include="ADP\Tables\VERTICAL_Compliance.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance_RAW.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance_INTEG.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance_AVM_INTEG.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance_AVM_AM.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance_AVM_AD.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance_AVM.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance_AM.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance_AD.sql" />
+    <Build Include="ADP\Tables\SBU_Compliance.sql" />
+    <Build Include="ADP\Tables\Project_Compliance_AVM.sql" />
+    <Build Include="ADP\Tables\Project_Compliance.sql" />
+    <Build Include="ADP\Tables\Input_Excel_Associate.sql" />
+    <Build Include="ADP\Tables\Associate_Projects.sql" />
+    <Build Include="ADP\Tables\Associate_Projects_EAS.sql" />
+    <Build Include="ADP\Tables\Associate_Projects_AIA.sql" />
+    <Build Include="ADP\Tables\Associate_Projects_CDB.sql" />
+    <Build Include="ADP\Tables\Associate_Compliance_RAW.sql" />
+    <Build Include="ADP\Tables\Associate_Allocation_Raw.sql" />
+    <Build Include="ADP\Tables\Associate_Accountcompliance_Raw.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_INTEG.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_AVM_INTEG.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_AVM_AM.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_AVM_AD.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_AVM.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_AM.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_AD.sql" />
+    <Build Include="ADP\Tables\Adoption_Readme.sql" />
+    <Build Include="ADP\Tables\Account_Compliance.sql" />
+    <Build Include="ADP\Tables\Account_Compliance_YETTOSCOPE.sql" />
+    <Build Include="ADP\Tables\CentralRepository_ActiveAllocations.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_Allocation.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_HolidayDate.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_Project.sql" />
+    <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate.sql" />
+    <Build Include="ADP\Stored Procedures\AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\ACCOUNT_PROJECT_SUMMARY_RAW.sql" />
+    <Build Include="ADP\Stored Procedures\AVM_AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_Associate_Details.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_Current_ProjectManager.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_ActiveAllocations.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_SFDC_Financial_Ultimate_Parent_Account.sql" />
+    <Build Include="ADP\Stored Procedures\SP_Centralrepository_SFDC_Account.sql" />
+    <Build Include="Security\ADP.sql" />
+    <Build Include="ADP\Stored Procedures\Adoption_Associate_MailRecipientlist.sql" />
+    <Build Include="ADP\Stored Procedures\AIA_ACCOUNT_PROJECT_SUMMARY_RAW.sql" />
+    <Build Include="ADP\Stored Procedures\AIA_Adoption_Associate_MailRecipientlist.sql" />
+    <Build Include="ADP\Stored Procedures\AIA_AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\AIA_AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\AVM_AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\BU_SUMMARY.sql" />
+    <Build Include="ADP\Stored Procedures\CDB_ACCOUNT_PROJECT_SUMMARY_RAW.sql" />
+    <Build Include="ADP\Stored Procedures\CDB_Adoption_Associate_MailRecipientlist.sql" />
+    <Build Include="ADP\Stored Procedures\CDB_AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\CDB_AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_ACCOUNT_PROJECT_SUMMARY_RAW.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_Adoption_Associate_MailRecipientlist.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_AssociateData_Weekly.sql" />
+    <Build Include="ADP\Tables\MailRecipient_Associate_1.sql" />
+    <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_AIA.sql" />
+    <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_CDB.sql" />
+    <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_EAS.sql" />
+    <Build Include="ADP\User Defined Types\TVP_ActiveAdoptionProjectList.sql" />
+    <Build Include="ADP\Stored Procedures\InsertAdoptionProjects.sql" />
+    <Build Include="ADP\Stored Procedures\GetOPLMailerList.sql" />
+    <Build Include="dbo\Tables\Adoption_OPL_JobMail.sql" />
+    <Build Include="ADP\Tables\CTS_AVM_MAS_TIMESHEET_DART_VIEW.sql" />
+    <Build Include="ADP\Stored Procedures\DailyMainSpringEffortFrmGateway.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <ArtifactReference Include="DB Reference\AppVisionLens.dacpac">
+      <HintPath>DB Reference\AppVisionLens.dacpac</HintPath>
+      <SuppressMissingDependenciesErrors>False</SuppressMissingDependenciesErrors>
+      <DatabaseSqlCmdVariable>AppVisionLens</DatabaseSqlCmdVariable>
+    </ArtifactReference>
+    <ArtifactReference Include="DB Reference\AVMCOEESA.dacpac">
+      <HintPath>DB Reference\AVMCOEESA.dacpac</HintPath>
+      <SuppressMissingDependenciesErrors>False</SuppressMissingDependenciesErrors>
+      <DatabaseSqlCmdVariable>AVMCOEESA</DatabaseSqlCmdVariable>
+    </ArtifactReference>
+    <ArtifactReference Include="DB Reference\AVMCOEESAGateWay.dacpac">
+      <HintPath>DB Reference\AVMCOEESAGateWay.dacpac</HintPath>
+      <SuppressMissingDependenciesErrors>False</SuppressMissingDependenciesErrors>
+      <DatabaseSqlCmdVariable>GateWayServerName</DatabaseSqlCmdVariable>
+      <ServerSqlCmdVariable>AVMCOEESAGateWay</ServerSqlCmdVariable>
+    </ArtifactReference>
+    <ArtifactReference Include="DB Reference\master.dacpac">
+      <HintPath>DB Reference\master.dacpac</HintPath>
+      <SuppressMissingDependenciesErrors>False</SuppressMissingDependenciesErrors>
+      <DatabaseSqlCmdVariable>master</DatabaseSqlCmdVariable>
+    </ArtifactReference>
+    <ArtifactReference Include="DB Reference\DebtEngine.dacpac">
+      <HintPath>DB Reference\DebtEngine.dacpac</HintPath>
+      <SuppressMissingDependenciesErrors>False</SuppressMissingDependenciesErrors>
+      <DatabaseSqlCmdVariable>DebtEngine</DatabaseSqlCmdVariable>
+    </ArtifactReference>
+    <ArtifactReference Include="DB Reference\AppVisionLensOffline.dacpac">
+      <HintPath>DB Reference\AppVisionLensOffline.dacpac</HintPath>
+      <SuppressMissingDependenciesErrors>False</SuppressMissingDependenciesErrors>
+      <DatabaseSqlCmdVariable>AppVisionLensOffline</DatabaseSqlCmdVariable>
+    </ArtifactReference>
+    <ArtifactReference Include="DB Reference\MainSpring.dacpac">
+      <HintPath>DB Reference\MainSpring.dacpac</HintPath>
+      <SuppressMissingDependenciesErrors>False</SuppressMissingDependenciesErrors>
+      <DatabaseSqlCmdVariable>MainSpring</DatabaseSqlCmdVariable>
+    </ArtifactReference>
+  </ItemGroup>
+  <ItemGroup>
+    <SqlCmdVariable Include="AppVisionLens">
+      <DefaultValue>AppVisionLens</DefaultValue>
+      <Value>$(SqlCmdVar__1)</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="AppVisionLensOffline">
+      <DefaultValue>AppVisionLensOffline</DefaultValue>
+      <Value>$(SqlCmdVar__7)</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="AVMCOEESA">
+      <DefaultValue>AVMCOEESA</DefaultValue>
+      <Value>$(SqlCmdVar__2)</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="AVMCOEESAGateWay">
+      <DefaultValue>AVMCOEESA</DefaultValue>
+      <Value>$(SqlCmdVar__4)</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="DebtEngine">
+      <DefaultValue>DebtEngine</DefaultValue>
+      <Value>$(SqlCmdVar__6)</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="GateWayServerName">
+      <DefaultValue>AVMCOEESA</DefaultValue>
+      <Value>$(SqlCmdVar__3)</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="MainSpring">
+      <DefaultValue>MainSpring</DefaultValue>
+      <Value>$(SqlCmdVar__8)</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="master">
+      <DefaultValue>master</DefaultValue>
+      <Value>$(SqlCmdVar__5)</Value>
+    </SqlCmdVariable>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DB Reference\AppVisionLens.dacpac" />
+    <None Include="DB Reference\AppVisionLensOffline.dacpac" />
+    <None Include="DB Reference\AVMCOEESA.dacpac" />
+    <None Include="DB Reference\AVMCOEESAGateWay.dacpac" />
+    <None Include="DB Reference\DebtEngine.dacpac" />
+    <None Include="DB Reference\MainSpring.dacpac" />
+    <None Include="DB Reference\master.dacpac" />
+  </ItemGroup>
+</Project>

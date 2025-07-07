@@ -1,0 +1,29 @@
+USE [AdoptionReport]
+GO
+/****** Object:  Table [ADPR].[Associate_Compliance_RAW]    Script Date: 9/24/2024 2:48:37 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [ADPR].[Associate_Compliance_RAW](
+	[ID] [bigint] IDENTITY(1,1) NOT NULL,
+	[Parent Accountid] [char](15) NULL,
+	[Parent AccountName] [varchar](100) NULL,
+	[SBU] [varchar](50) NULL,
+	[Vertical] [varchar](50) NULL,
+	[EsaProjectID] [char](15) NOT NULL,
+	[Projectname] [varchar](100) NULL,
+	[EmployeeID] [varchar](50) NULL,
+	[EmployeeName] [varchar](100) NULL,
+	[Department_Name] [varchar](100) NULL,
+	[Jobcode] [varchar](100) NULL,
+	[Designation] [varchar](100) NULL,
+	[AvaialbleFTE Below_M] [decimal](10, 2) NULL,
+	[Available Hours] [decimal](10, 2) NULL,
+	[MPS Effort] [decimal](10, 2) NULL,
+	[WorkProfile AD Effort] [decimal](10, 2) NULL,
+	[MAS Effort] [decimal](10, 2) NULL,
+	[Actual Effort] [decimal](10, 2) NULL,
+	[Associate Compliance %] [decimal](10, 2) NULL
+) ON [PRIMARY]
+GO

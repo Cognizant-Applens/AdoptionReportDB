@@ -1,0 +1,8 @@
+USE [AdoptionReport]
+GO
+
+/****** Object:  Schema [ADPR]    Script Date: 9/24/2024 2:42:46 PM ******/
+CREATE SCHEMA [ADPR]
+GO
+
+

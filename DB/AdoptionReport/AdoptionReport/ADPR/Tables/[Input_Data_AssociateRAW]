@@ -1,0 +1,29 @@
+USE [AdoptionReport]
+GO
+/****** Object:  Table [ADPR].[Input_Data_AssociateRAW]    Script Date: 9/24/2024 2:48:37 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [ADPR].[Input_Data_AssociateRAW](
+	[ID] [bigint] IDENTITY(1,1) NOT NULL,
+	[PracticeOwner] [varchar](50) NULL,
+	[ProjectOwningPractice] [varchar](50) NULL,
+	[DE_Inscope] [varchar](50) NULL,
+	[EsaProjectID] [varchar](50) NULL,
+	[ProjectName] [varchar](50) NULL,
+	[PO ID] [varchar](50) NULL,
+	[PO Name] [varchar](50) NULL,
+	[DM ID] [varchar](50) NULL,
+	[DM Name] [varchar](50) NULL,
+	[Project Department] [varchar](50) NULL,
+	[PM ID] [varchar](50) NULL,
+	[PM Name] [varchar](50) NULL,
+	[ParentAccountID] [varchar](50) NULL,
+	[ParentAccountName] [varchar](50) NULL,
+	[MARKET] [nvarchar](100) NULL,
+	[MARKET_BU] [nvarchar](100) NULL,
+	[PROJECTSCOPE] [nvarchar](50) NULL,
+	[OnboardStatus] [varchar](50) NULL
+) ON [PRIMARY]
+GO

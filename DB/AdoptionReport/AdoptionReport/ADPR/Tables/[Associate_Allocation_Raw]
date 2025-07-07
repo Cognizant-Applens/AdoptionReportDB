@@ -1,0 +1,32 @@
+USE [AdoptionReport]
+GO
+/****** Object:  Table [ADPR].[Associate_Allocation_Raw]    Script Date: 9/24/2024 2:48:37 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [ADPR].[Associate_Allocation_Raw](
+	[ID] [bigint] IDENTITY(1,1) NOT NULL,
+	[Parent_Accountid] [char](50) NULL,
+	[Parent_AccountName] [varchar](100) NULL,
+	[SBU] [varchar](50) NULL,
+	[Vertical] [varchar](50) NULL,
+	[SDM_ID] [char](50) NULL,
+	[SDM_Name] [varchar](100) NULL,
+	[SDD_ID] [char](50) NULL,
+	[SDD_Name] [varchar](100) NULL,
+	[Project_ID] [char](15) NOT NULL,
+	[Project Name] [varchar](100) NULL,
+	[Associate_id] [char](15) NULL,
+	[Associate_Name] [varchar](100) NULL,
+	[Allocation_Startdate] [datetime] NULL,
+	[Allocation_Enddate] [datetime] NULL,
+	[Allocation_Percentage] [decimal](10, 4) NULL,
+	[ESA_FTE_Count] [decimal](10, 4) NULL,
+	[Available_Hours] [decimal](10, 2) NULL,
+	[DE_Inscope] [varchar](50) NULL,
+	[Department_Name] [varchar](100) NULL,
+	[Job_code] [varchar](50) NULL,
+	[Designation] [varchar](50) NULL
+) ON [PRIMARY]
+GO

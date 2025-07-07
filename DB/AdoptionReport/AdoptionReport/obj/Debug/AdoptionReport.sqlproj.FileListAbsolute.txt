@@ -1,0 +1,17 @@
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\AdoptionReport.dacpac
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\obj\Debug\Model.xml
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\obj\Debug\refactor.xml
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\obj\Debug\postdeploy.sql
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\obj\Debug\predeploy.sql
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\obj\Debug\AdoptionReport.dll
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\obj\Debug\AdoptionReport.pdb
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\AdoptionReport.dll
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\AdoptionReport.pdb
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\AppVisionLens.dacpac
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\AVMCOEESA.dacpac
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\AVMCOEESAGateWay.dacpac
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\master.dacpac
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\DebtEngine.dacpac
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\AppVisionLensOffline.dacpac
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\bin\Debug\MainSpring.dacpac
+C:\AppLens-Product\FeatureBranches\AdoptionReport\DB\AdoptionReport\AdoptionReport\obj\Debug\AdoptionReport.sqlproj.CopyComplete

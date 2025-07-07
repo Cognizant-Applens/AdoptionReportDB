@@ -1,0 +1,16 @@
+USE [AdoptionReport]
+GO
+/****** Object:  Table [ADPR].[MailRecipient_Associate]    Script Date: 9/24/2024 2:48:37 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [ADPR].[MailRecipient_Associate](
+	[ID] [bigint] IDENTITY(1,1) NOT NULL,
+	[EmployeeID] [varchar](15) NULL,
+	[EmailID] [nvarchar](400) NULL,
+	[Type] [int] NULL,
+	[SBU] [varchar](15) NULL,
+	[IsDeleted] [bit] NULL
+) ON [PRIMARY]
+GO

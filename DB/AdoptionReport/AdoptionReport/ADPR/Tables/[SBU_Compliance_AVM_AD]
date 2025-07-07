@@ -1,0 +1,25 @@
+USE [AdoptionReport]
+GO
+/****** Object:  Table [ADPR].[SBU_Compliance_AVM_AD]    Script Date: 9/24/2024 2:48:37 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [ADPR].[SBU_Compliance_AVM_AD](
+	[ID] [bigint] IDENTITY(1,1) NOT NULL,
+	[SBU] [varchar](50) NULL,
+	[AVM #FTE] [decimal](10, 2) NULL,
+	[AVM #FTE with TSC %=0] [decimal](10, 2) NULL,
+	[AVM #FTE with TSC %>0 to 25] [decimal](10, 2) NULL,
+	[AVM #FTE with TSC %>25 to 50] [decimal](10, 2) NULL,
+	[AVM #FTE with TSC %>50 to 80] [decimal](10, 2) NULL,
+	[AVM #FTE with TSC %>80] [decimal](10, 2) NULL,
+	[Available Hours] [decimal](10, 2) NULL,
+	[MPS Effort] [decimal](10, 2) NULL,
+	[WorkProfile AD] [decimal](10, 2) NULL,
+	[MAS Effort] [decimal](10, 2) NULL,
+	[Actual Effort] [decimal](10, 2) NULL,
+	[BU Effort Compliance%(AVM)] [decimal](10, 2) NULL,
+	[AVM_Associate_Compliance_Percent] [decimal](10, 2) NULL
+) ON [PRIMARY]
+GO

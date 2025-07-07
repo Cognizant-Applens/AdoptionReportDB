@@ -1,0 +1,18 @@
+USE [AdoptionReport]
+GO
+/****** Object:  Table [ADPR].[Input_Excel_Associate]    Script Date: 9/24/2024 2:48:37 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [ADPR].[Input_Excel_Associate](
+	[ID] [bigint] IDENTITY(1,1) NOT NULL,
+	[EsaProjectID] [varchar](15) NOT NULL,
+	[PracticeOwner] [varchar](50) NOT NULL,
+	[DE_Inscope] [varchar](50) NOT NULL,
+	[SBU] [varchar](50) NOT NULL,
+	[DartOrApp] [varchar](10) NULL,
+	[IsConfigured] [int] NULL,
+	[CHILDPROJECT] [nvarchar](50) NULL
+) ON [PRIMARY]
+GO

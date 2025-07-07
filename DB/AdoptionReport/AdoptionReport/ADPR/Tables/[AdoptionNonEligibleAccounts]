@@ -1,0 +1,16 @@
+USE [AdoptionReport]
+GO
+/****** Object:  Table [ADPR].[AdoptionNonEligibleAccounts]    Script Date: 9/24/2024 2:48:37 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [ADPR].[AdoptionNonEligibleAccounts](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[AccountId] [int] NOT NULL,
+	[AccountName] [nvarchar](50) NULL,
+	[IsAdoptionEligible] [bit] NOT NULL
+) ON [PRIMARY]
+GO
+ALTER TABLE [ADPR].[AdoptionNonEligibleAccounts] ADD  CONSTRAINT [DF_ADPR.AdoptionNonEligibleAccounts_IsAdoptionEligible]  DEFAULT ((0)) FOR [IsAdoptionEligible]
+GO

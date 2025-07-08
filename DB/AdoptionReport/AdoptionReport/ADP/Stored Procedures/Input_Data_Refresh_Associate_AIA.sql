@@ -21,27 +21,27 @@ SELECT distinct EsaProjectID,PracticeOwner,DE_Inscope,SBU,[CHILDPROJECT] FROM [A
 UPDATE EX set EX.DartOrApp=2  from [Adp].[Input_Excel_Associate] EX 
 
 
-join [$(AppVisionLens)].AVL.MAS_ProjectMaster PM on Pm.EsaProjectID=EX.EsaProjectID  and  PM.IsDeleted=0 and PM.IsESAProject=1 --and (pm.IsMigratedFromDART=2 or pm.IsMigratedFromDART is null) 
+join [$(AppVisionLens)]..AVL.MAS_ProjectMaster PM on Pm.EsaProjectID=EX.EsaProjectID  and  PM.IsDeleted=0 and PM.IsESAProject=1 --and (pm.IsMigratedFromDART=2 or pm.IsMigratedFromDART is null) 
 
 
 UPDATE EX set EX.IsConfigured=1  from [Adp].[Input_Excel_Associate] EX 
 
-join [$(AppVisionLens)].AVL.MAS_ProjectMaster PM on Pm.EsaProjectID=EX.EsaProjectID  and  PM.IsDeleted=0 and PM.IsESAProject=1 --and (pm.IsMigratedFromDART=2 or pm.IsMigratedFromDART is null) 
+join [$(AppVisionLens)]..AVL.MAS_ProjectMaster PM on Pm.EsaProjectID=EX.EsaProjectID  and  PM.IsDeleted=0 and PM.IsESAProject=1 --and (pm.IsMigratedFromDART=2 or pm.IsMigratedFromDART is null) 
 
-join [$(AppVisionLens)].AVL.PRJ_ConfigurationProgress CP on CP.ProjectID=PM.ProjectID and CP.ScreenID=2 and CP.ITSMScreenId=11 and CP.CompletionPercentage=100 and CP.IsDeleted=0
+join [$(AppVisionLens)]..AVL.PRJ_ConfigurationProgress CP on CP.ProjectID=PM.ProjectID and CP.ScreenID=2 and CP.ITSMScreenId=11 and CP.CompletionPercentage=100 and CP.IsDeleted=0
 
-join [$(AppVisionLens)].AVL.PRJ_ConfigurationProgress CP1 on CP1.ProjectID=PM.ProjectID and CP1.ScreenID=4  and CP1.CompletionPercentage=100 and cp1.IsDeleted=0
+join [$(AppVisionLens)]..AVL.PRJ_ConfigurationProgress CP1 on CP1.ProjectID=PM.ProjectID and CP1.ScreenID=4  and CP1.CompletionPercentage=100 and cp1.IsDeleted=0
 
 UPDATE EX set EX.IsConfigured=1 from [Adp].[Input_Excel_Associate] EX
-join [$(AppVisionLens)].AVL.MAS_ProjectMaster PM on Pm.EsaProjectID=EX.EsaProjectID and PM.IsDeleted=0 and PM.IsESAProject=1
-join [$(AppVisionLens)].PP.ProjectProfilingTileProgress CP on CP.ProjectID=PM.ProjectID and CP.TileID=5 and CP.TileProgressPercentage=100 and CP.IsDeleted=0
-join [$(AppVisionLens)].AVL.PRJ_ConfigurationProgress CP1 on CP1.ProjectID=PM.ProjectID and CP1.ScreenID=4 and CP1.CompletionPercentage=100 and cp1.IsDeleted=0
+join [$(AppVisionLens)]..AVL.MAS_ProjectMaster PM on Pm.EsaProjectID=EX.EsaProjectID and PM.IsDeleted=0 and PM.IsESAProject=1
+join [$(AppVisionLens)]..PP.ProjectProfilingTileProgress CP on CP.ProjectID=PM.ProjectID and CP.TileID=5 and CP.TileProgressPercentage=100 and CP.IsDeleted=0
+join [$(AppVisionLens)]..AVL.PRJ_ConfigurationProgress CP1 on CP1.ProjectID=PM.ProjectID and CP1.ScreenID=4 and CP1.CompletionPercentage=100 and cp1.IsDeleted=0
 where EX.IsConfigured is null
 
 
 UPDATE A set A.DartOrApp=3 from [Adp].[Input_Excel_Associate] A
 
-join [$(AppVisionLens)].AVL.MAS_ProjectMaster pm on pm.EsaProjectID =A.EsaProjectID and pm.IsDeleted=0  and  pm.IsODCRestricted='Y'
+join [$(AppVisionLens)]..AVL.MAS_ProjectMaster pm on pm.EsaProjectID =A.EsaProjectID and pm.IsDeleted=0  and  pm.IsODCRestricted='Y'
 
 
 
@@ -72,7 +72,7 @@ from [Adp].[Input_Excel_Associate] AIE where  AIE.DartOrApp=2 and AIE.DartOrApp=
 SELECT CTS_VERTICAL,ProjectID INTO #TempPracOwningBU FROM  
 
 
-	(SELECT DISTINCT CTS_VERTICAL,ID as ProjectID FROM [$(AppVisionLens)].ESA.Projects where CONVERT(varchar,ID) in(
+	(SELECT DISTINCT CTS_VERTICAL,ID as ProjectID FROM [$(AppVisionLens)]..ESA.Projects where CONVERT(varchar,ID) in(
 	
 	SELECT ESAProjectID from #TMP_INPUT)
 
@@ -108,11 +108,11 @@ into #tmp_data_preview_old
 
 from #tmp_pre_ID TF 
 
-left join [$(AppVisionLens)].[ESA].[Associates] AS associate on TF.project_Owner = associate.AssociateID
+left join [$(AppVisionLens)]..[ESA].[Associates] AS associate on TF.project_Owner = associate.AssociateID
 
-left join [$(AppVisionLens)].[ESA].[Associates] AS associate1 on TF.Deliverymanagerid = associate1.AssociateID
+left join [$(AppVisionLens)]..[ESA].[Associates] AS associate1 on TF.Deliverymanagerid = associate1.AssociateID
 
-left join [$(AppVisionLens)].[ESA].[Associates] AS associate2 on TF.PROJECT_MANAGER = associate2.AssociateID
+left join [$(AppVisionLens)]..[ESA].[Associates] AS associate2 on TF.PROJECT_MANAGER = associate2.AssociateID
 
 
 
@@ -180,7 +180,7 @@ Inner Join #TempPracOwningBU C on A.ESAProjectID= C.ProjectID
 
 
 
-Delete from [Adp].[Input_Data_AssociateRAW] where EsaProjectID in (Select EsaProjectID from [$(AppVisionLens)].AVL.MAS_ProjectMaster where IsODCRestricted = 'Y')
+Delete from [Adp].[Input_Data_AssociateRAW] where EsaProjectID in (Select EsaProjectID from [$(AppVisionLens)]..AVL.MAS_ProjectMaster where IsODCRestricted = 'Y')
 
 Update [Adp].[Input_Data_AssociateRAW] SET PracticeOwner = 'HEALTHCARE' WHERE PracticeOwner = 'XEROX'
 
@@ -189,9 +189,9 @@ Update [Adp].[Input_Data_AssociateRAW] SET ProjectOwningPractice = 'HEALTHCARE' 
 
 
 select distinct A.EsaProjectID,C.AttributeValueID as 'ScopeName' , 'Scp' As 'Scope'into #ProjectScope from [Adp].[Input_Data_AssociateRAW] A
-join [$(AppVisionLens)].AVL.MAS_ProjectMaster B on A.EsaProjectid=B.EsaProjectID
-join [$(AppVisionLens)].PP.ProjectAttributeValues C on B.ProjectID=C.ProjectID
-join [$(AppVisionLens)].MAS.PPAttributeValues D on C.AttributeValueID=D.AttributeValueID
+join [$(AppVisionLens)]..AVL.MAS_ProjectMaster B on A.EsaProjectid=B.EsaProjectID
+join [$(AppVisionLens)]..PP.ProjectAttributeValues C on B.ProjectID=C.ProjectID
+join [$(AppVisionLens)]..MAS.PPAttributeValues D on C.AttributeValueID=D.AttributeValueID
 where C.AttributeID='1'
 order by A.EsaProjectid
 
@@ -253,7 +253,7 @@ END TRY
  DECLARE @ErrorMessage VARCHAR(8000);
 	SELECT @ErrorMessage = ERROR_MESSAGE()
 		--INSERT Error    
-		EXEC [$(AppVisionLens)].dbo.AVL_InsertError '[Adp].[Input_Data_Refresh_Associate_AIA]', @ErrorMessage, '',''
+		EXEC [$(AppVisionLens)]..dbo.AVL_InsertError '[Adp].[Input_Data_Refresh_Associate_AIA]', @ErrorMessage, '',''
 		RETURN @ErrorMessage
   END CATCH   
 

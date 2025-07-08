@@ -61,7 +61,7 @@ DECLARE @ErrorMessage NVARCHAR(4000);
     @ErrorSeverity = ERROR_SEVERITY(),      
     @ErrorState  = ERROR_STATE();   
       
-  EXEC AppVisionLens.[dbo].AVL_InsertError '[Adp].[SP_CentralRepository_HolidayDate]', @ErrorMessage, 0 ,''   
+  EXEC [$(AppVisionLens)].[dbo].AVL_InsertError '[Adp].[SP_CentralRepository_HolidayDate]', @ErrorMessage, 0 ,''   
       
   SELECT @MailSubject = CONCAT(@@SERVERNAME, ': ADP HolidayDetail Failure Notification')  
   
@@ -70,7 +70,7 @@ DECLARE @ErrorMessage NVARCHAR(4000);
        '<br><br>Regards,<br>Solution Zone Team<br><br>***Note: This is an auto generated mail. Please do not reply.***</font>')  
   
        DECLARE @recipientsAddress NVARCHAR(4000)='';  
-       SET @recipientsAddress = (SELECT ConfigValue FROM AppVisionLens.AVL.AppLensConfig WHERE ConfigName='Mail' AND IsActive=1);     
+       SET @recipientsAddress = (SELECT ConfigValue FROM [$(AppVisionLens)].AVL.AppLensConfig WHERE ConfigName='Mail' AND IsActive=1);     
       EXEC [AppVisionLens].[AVL].[SendDBEmail] @To=@recipientsAddress,
     @From='ApplensSupport@cognizant.com',
     @Subject =@MailSubject,

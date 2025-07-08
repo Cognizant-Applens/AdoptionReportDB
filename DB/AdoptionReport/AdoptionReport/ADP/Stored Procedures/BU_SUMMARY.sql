@@ -1,11 +1,4 @@
-﻿USE [AdoptionReport]
-GO
-/****** Object:  StoredProcedure [ADP].[BU_SUMMARY]    Script Date: 08/23/2023 11:55:53 AM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-ALTER procedure [ADP].[BU_SUMMARY]
+﻿CREATE procedure [ADP].[BU_SUMMARY]
 (
 @ReportType nvarchar(max) = NULL
 )

@@ -1,11 +1,4 @@
-USE [AdoptionReport]
-GO
-/****** Object:  StoredProcedure [ADP].[InsertAdoptionProjects]    Script Date: 24-09-2024 15:25:07 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-ALTER Procedure [ADP].[InsertAdoptionProjects] 
+CREATE Procedure [ADP].[InsertAdoptionProjects] 
 (  
 @TVP_AssociateProjectList [ADP].[TVP_ActiveAdoptionProjectList] READONLY
 )   

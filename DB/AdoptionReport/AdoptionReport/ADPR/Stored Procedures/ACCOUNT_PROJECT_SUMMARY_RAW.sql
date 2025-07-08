@@ -648,9 +648,9 @@ SELECT [SBU Delivery (PC2Geo mapping)],[Overall FTE],[ADM FTE],[Overall #FTE wit
 ---------  Service Details -----  
 Select  PCT.EsaProjectid AS [ESA Project ID],MS.ServiceName As [Service Name],Count(TD.Ticketid) As [Ticket Volume],Sum(Td.EffortTillDate) AS [Effort]  
 from[ADPR].[Project_Compliance] (NoLock) PCT  
-INNER JOIN AppVisionLens.Avl.Mas_projectMaster (NoLock)  PM ON PCT.EsaProjectid=PM.ESAProjectID AND PM.ISdeleted=0  
-INNER JOIN AppVisionLens.[AVL].[Tk_TRN_TicketDetail] (NoLock) TD ON TD.ProjectID=PM.ProjectID AND Td.IsDeleted=0  
-INNER JOIN AppVisionLens.[AVL].[TK_MAS_Service] (NoLock) MS ON MS.ServiceID=TD.ServiceID  
+INNER JOIN [$(AppVisionLens)].Avl.Mas_projectMaster (NoLock)  PM ON PCT.EsaProjectid=PM.ESAProjectID AND PM.ISdeleted=0  
+INNER JOIN [$(AppVisionLens)].[AVL].[Tk_TRN_TicketDetail] (NoLock) TD ON TD.ProjectID=PM.ProjectID AND Td.IsDeleted=0  
+INNER JOIN [$(AppVisionLens)].[AVL].[TK_MAS_Service] (NoLock) MS ON MS.ServiceID=TD.ServiceID  
 Where Convert(date,Td.OpenDateTime) >= @startdate and Convert(date,Td.OpenDateTime) <= @endDate  
 Group by PCT.EsaProjectid,MS.ServiceName,TD.Serviceid,MS.Serviceid  
 Order by PCT.EsaProjectid,TD.Serviceid

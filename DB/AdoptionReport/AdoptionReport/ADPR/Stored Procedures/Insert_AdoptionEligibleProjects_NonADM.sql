@@ -9,15 +9,15 @@ BEGIN TRANSACTION
   
 --Onboarded Projects  
 --SELECT DISTINCT EsaProjectID,OPL.[Project Owner / ESA PM department] AS Department,Project_Owning_Unit INTO #Dept_BU  
---FROM AppVisionLens.AVL.MAS_ProjectMaster PM   
---JOIN AppVisionLens.AVL.PRJ_ConfigurationProgress CP ON PM.ProjectId=CP.ProjectId  
---JOIN AppVisionLens.dbo.OPLMasterData OPL ON PM.EsaProjectId=OPL.Esa_Project_Id  
+--FROM [$(AppVisionLens)].AVL.MAS_ProjectMaster PM   
+--JOIN [$(AppVisionLens)].AVL.PRJ_ConfigurationProgress CP ON PM.ProjectId=CP.ProjectId  
+--JOIN [$(AppVisionLens)].dbo.OPLMasterData OPL ON PM.EsaProjectId=OPL.Esa_Project_Id  
 --WHERE PM.IsDeleted=0 AND CP.ScreenID=4 AND CP.CompletionPercentage=100 AND CP.IsDeleted=0  
 
 SELECT DISTINCT PM.EsaProjectID,OPL.ProjectOwner_ESA_PM_Department AS Department,ProjectOwningUnit INTO #Dept_BU
-FROM AppVisionLens.AVL.MAS_ProjectMaster PM 
-JOIN AppVisionLens.AVL.PRJ_ConfigurationProgress CP ON PM.ProjectId=CP.ProjectId
-JOIN AppVisionLens.dbo.DQR_oplmasterdata OPL ON PM.EsaProjectId=OPL.EsaProjectId
+FROM [$(AppVisionLens)].AVL.MAS_ProjectMaster PM 
+JOIN [$(AppVisionLens)].AVL.PRJ_ConfigurationProgress CP ON PM.ProjectId=CP.ProjectId
+JOIN [$(AppVisionLens)].dbo.DQR_oplmasterdata OPL ON PM.EsaProjectId=OPL.EsaProjectId
 WHERE PM.IsDeleted=0 AND CP.ScreenID=4 AND CP.CompletionPercentage=100 AND CP.IsDeleted=0 
 
 CREATE TABLE #EligibleProjects(  

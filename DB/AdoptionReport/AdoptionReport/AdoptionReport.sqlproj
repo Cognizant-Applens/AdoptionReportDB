@@ -157,7 +157,6 @@
     <Build Include="ADP\Stored Procedures\EAS_Adoption_Associate_MailRecipientlist.sql" />
     <Build Include="ADP\Stored Procedures\EAS_AssociateData_Monthly.sql" />
     <Build Include="ADP\Stored Procedures\EAS_AssociateData_Weekly.sql" />
-    <Build Include="ADP\Tables\MailRecipient_Associate_1.sql" />
     <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_AIA.sql" />
     <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_CDB.sql" />
     <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_EAS.sql" />
@@ -167,8 +166,6 @@
     <Build Include="dbo\Tables\Adoption_OPL_JobMail.sql" />
     <Build Include="ADP\Tables\CTS_AVM_MAS_TIMESHEET_DART_VIEW.sql" />
     <Build Include="ADP\Stored Procedures\DailyMainSpringEffortFrmGateway.sql" />
-    <Build Include="ADP\Tables\MandatoryHoursConfig_1.sql" />
-    <Build Include="ADP\Tables\Errors_1.sql" />
     <Build Include="ADPR\Tables\NonADM_NotEligibleProjects.sql" />
     <Build Include="ADPR\Tables\NonADM_EligibleProjects.sql" />
     <Build Include="ADPR\Tables\ReportTimingDetails.sql" />
@@ -207,10 +204,6 @@
     <Build Include="ADPR\Tables\AdoptionNonEligibleAccounts.sql" />
     <Build Include="ADPR\Views\VW_Applens_OPL_Adoption_Eligible_projects.sql" />
     <Build Include="dbo\Stored Procedures\ShrinkDB.sql" />
-    <Build Include="ADP\Stored Procedures\InsertError_1.sql" />
-    <Build Include="ADP\Stored Procedures\InsertAdoptionProjects_1.sql" />
-    <Build Include="ADP\Stored Procedures\BU_SUMMARY_1.sql" />
-    <Build Include="ADP\Stored Procedures\AssociateData_Monthly_1.sql" />
     <Build Include="ADPR\Stored Procedures\Insert_AdoptionEligibleProjects_NonADM.sql" />
     <Build Include="ADPR\Stored Procedures\Insert_AdoptionEligibleProjects.sql" />
     <Build Include="ADPR\Stored Procedures\Input_Data_Refresh_Associate.sql" />

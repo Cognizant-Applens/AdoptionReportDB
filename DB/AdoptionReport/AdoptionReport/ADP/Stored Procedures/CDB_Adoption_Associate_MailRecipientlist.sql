@@ -18,7 +18,7 @@ JOIN adp.CentralRepository_Project CP (NOLOCK)
 ON PC.EsaProjectID=CP.Project_ID
 JOIN [Adp].[CentralRepository_Current_ProjectManager] CC (NOLOCK) 
 ON CC.PROJECT_ID=CP.Project_ID
-JOIN [$(AppVisionLens)].[ESA].[Associates] A (NOLOCK) 
+JOIN [$(AppVisionLens)]..[ESA].[Associates] A (NOLOCK) 
 ON CC.PROJECT_MANAGER=A.AssociateID AND A.IsActive=1
 
 MERGE [Adp].[MailRecipient_Associate] T
@@ -81,7 +81,7 @@ END TRY
  DECLARE @ErrorMessage VARCHAR(8000);  
  SELECT @ErrorMessage = ERROR_MESSAGE()  
   --INSERT Error      
-  EXEC [$(AppVisionLens)].[dbo].AVL_InsertError '[dbo].[CDB_Adoption_Associate_MailRecipientlist]', @ErrorMessage, '',''  
+  EXEC [$(AppVisionLens)]..[dbo].AVL_InsertError '[dbo].[CDB_Adoption_Associate_MailRecipientlist]', @ErrorMessage, '',''  
   ROLLBACK TRAN
   RETURN @ErrorMessage  
   END CATCH     

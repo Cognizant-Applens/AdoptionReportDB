@@ -313,7 +313,7 @@ END TRY
  DECLARE @ErrorMessage VARCHAR(8000);  
  SELECT @ErrorMessage = ERROR_MESSAGE()  
   --INSERT Error      
-  EXEC [$(AppVisionLens)].dbo.AVL_InsertError '[ADP].[AIA_ACCOUNT_PROJECT_SUMMARY_RAW]', @ErrorMessage, '',''  
+  EXEC [$(AppVisionLens)]..dbo.AVL_InsertError '[ADP].[AIA_ACCOUNT_PROJECT_SUMMARY_RAW]', @ErrorMessage, '',''  
   RETURN @ErrorMessage  
   END CATCH     
   

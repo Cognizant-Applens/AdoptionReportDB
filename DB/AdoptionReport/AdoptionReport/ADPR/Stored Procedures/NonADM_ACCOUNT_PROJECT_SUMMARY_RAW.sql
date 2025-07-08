@@ -123,8 +123,8 @@ where A.SBU not in ('LATAM')
     
 ----GradeEquivalent Logic    
 --SELECT DISTINCT A.Grade,Grade_Equivalent,JobCode INTO #GradeEqi    
---FROM AppVisionLens.ESA.Associates A     
---JOIN AppVisionLens.[dbo].[Grade_Equivalent] B ON A.Grade=B.Grade    
+--FROM [$(AppVisionLens)].ESA.Associates A     
+--JOIN [$(AppVisionLens)].[dbo].[Grade_Equivalent] B ON A.Grade=B.Grade    
     
 --UPDATE #GradeEqi SET Grade_Equivalent=    
 --CASE WHEN Grade_Equivalent='A & eqvt' THEN 'A'    

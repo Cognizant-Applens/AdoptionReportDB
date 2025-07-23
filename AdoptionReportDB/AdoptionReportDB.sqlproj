@@ -1,0 +1,181 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>AdoptionReportDB</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>4.1</ProjectVersion>
+    <ProjectGuid>{86d501f9-b7a7-4d3e-b6bc-d4520412f441}</ProjectGuid>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider</DSP>
+    <OutputType>Database</OutputType>
+    <RootPath>
+    </RootPath>
+    <RootNamespace>AdoptionReportDB</RootNamespace>
+    <AssemblyName>AdoptionReportDB</AssemblyName>
+    <ModelCollation>1033,CI</ModelCollation>
+    <DefaultFileStructure>BySchemaAndSchemaType</DefaultFileStructure>
+    <DeployToDatabase>True</DeployToDatabase>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetLanguage>CS</TargetLanguage>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SqlServerVerification>False</SqlServerVerification>
+    <IncludeCompositeObjects>True</IncludeCompositeObjects>
+    <TargetDatabaseSet>True</TargetDatabaseSet>
+    <DefaultCollation>SQL_Latin1_General_CP1_CI_AS</DefaultCollation>
+    <DefaultFilegroup>PRIMARY</DefaultFilegroup>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">11.0</VisualStudioVersion>
+    <!-- Default to the v11.0 targets path if the targets file for the current VS version is not found -->
+    <SSDTExists Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')">True</SSDTExists>
+    <VisualStudioVersion Condition="'$(SSDTExists)' == ''">11.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Condition="'$(SQLDBExtensionsRefPath)' != ''" Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <ItemGroup>
+    <Folder Include="Properties" />
+    <Folder Include="ADPR\" />
+    <Folder Include="ADPR\Tables\" />
+    <Folder Include="ADP\" />
+    <Folder Include="ADP\Tables\" />
+    <Folder Include="dbo\" />
+    <Folder Include="dbo\Tables\" />
+    <Folder Include="ADPR\Views\" />
+    <Folder Include="Security\" />
+    <Folder Include="ADP\Stored Procedures\" />
+    <Folder Include="dbo\Stored Procedures\" />
+    <Folder Include="ADP\User Defined Types\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Include="ADPR\Tables\AdoptionNonEligibleAccounts.sql" />
+    <Build Include="ADPR\Tables\Adoption_ReadMe_IOT.sql" />
+    <Build Include="ADP\Tables\Errors.sql" />
+    <Build Include="ADP\Tables\Project_Compliance_Monthly.sql" />
+    <Build Include="ADP\Tables\Associate_Projects.sql" />
+    <Build Include="dbo\Tables\Adoption_OPL_JobMail.sql" />
+    <Build Include="ADP\Tables\CentralRepository_SFDC_Financial_Ultimate_Parent_Account.sql" />
+    <Build Include="ADP\Tables\MandatoryHoursConfig.sql" />
+    <Build Include="ADP\Tables\CentralRepository_HolidayDate.sql" />
+    <Build Include="ADP\Tables\Associate_Projects_EAS.sql" />
+    <Build Include="ADP\Tables\Associate_Projects_AIA.sql" />
+    <Build Include="ADP\Tables\CentralRepository_Project.sql" />
+    <Build Include="ADPR\Tables\AdoptionTotalEligibleProjects.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_AD.sql" />
+    <Build Include="ADP\Tables\CentralRepository_Associate_Details.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_AM.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_AVM.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_AVM_AD.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_AVM_AM.sql" />
+    <Build Include="ADP\Tables\Project_Compliance_Weekly.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_AVM_INTEG.sql" />
+    <Build Include="ADP\Tables\CentralRepository_Allocation.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_INTEG.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_Scope.sql" />
+    <Build Include="ADPR\Tables\Account_Compliance_YETTOSCOPE.sql" />
+    <Build Include="ADPR\Tables\Associate_Accountcompliance_Raw.sql" />
+    <Build Include="ADP\Tables\CentralRepository_ActiveAllocations.sql" />
+    <Build Include="ADPR\Tables\Associate_Allocation_Raw.sql" />
+    <Build Include="ADPR\Tables\Associate_Compliance_RAW.sql" />
+    <Build Include="ADPR\Tables\Associate_Projects.sql" />
+    <Build Include="ADPR\Tables\Input_Data_AssociateRAW.sql" />
+    <Build Include="ADPR\Tables\Input_Excel_Associate.sql" />
+    <Build Include="ADPR\Tables\MailRecipient_Associate.sql" />
+    <Build Include="ADP\Tables\CentralRepository_Current_ProjectManager.sql" />
+    <Build Include="ADPR\Tables\Project_Compliance.sql" />
+    <Build Include="ADPR\Tables\Project_Compliance_AVM.sql" />
+    <Build Include="ADPR\Tables\Project_Compliance_Monthly.sql" />
+    <Build Include="ADPR\Tables\Project_Compliance_Weekly.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance_AD.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance_AM.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance_AVM.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance_AVM_AD.sql" />
+    <Build Include="ADP\Tables\Adoption_Readme.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance_AVM_AM.sql" />
+    <Build Include="ADP\Tables\Associate_Projects_CDB.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance_AVM_INTEG.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance_INTEG.sql" />
+    <Build Include="ADP\Tables\centralrepository_SFDC_Account.sql" />
+    <Build Include="ADPR\Tables\SBU_Compliance_RAW.sql" />
+    <Build Include="ADPR\Tables\ReportTimingDetails.sql" />
+    <Build Include="ADPR\Tables\NonADM_EligibleProjects.sql" />
+    <Build Include="ADPR\Tables\NonADM_NotEligibleProjects.sql" />
+    <Build Include="ADPR\Views\VW_Applens_OPL_Adoption_Eligible_projects.sql" />
+    <Build Include="Security\NT SERVICE_HealthService.sql" />
+    <Build Include="Security\CTS_SDebtReduction.sql" />
+    <Build Include="Security\CTS_SAVMDeployment.sql" />
+    <Build Include="Security\CTS_SLean.sql" />
+    <Build Include="Security\CTS_2126763.sql" />
+    <Build Include="Security\CTS_sdbsecadmin.sql" />
+    <Build Include="Security\CTS_SDGDQPRODUSR.sql" />
+    <Build Include="Security\NT AUTHORITY_SYSTEM.sql" />
+    <Build Include="Security\CTS_SDRRAppServicePD.sql" />
+    <Build Include="Security\CTS_SAppLens.sql" />
+    <Build Include="Security\CTS_SBOMParentService.sql" />
+    <Build Include="ADP\Stored Procedures\CDB_ACCOUNT_PROJECT_SUMMARY_RAW.sql" />
+    <Build Include="dbo\Stored Procedures\ShrinkDB.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_HolidayDate.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_Current_ProjectManager.sql" />
+    <Build Include="ADP\Stored Procedures\AIA_ACCOUNT_PROJECT_SUMMARY_RAW.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_Allocation.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_SFDC_Financial_Ultimate_Parent_Account.sql" />
+    <Build Include="ADP\Stored Procedures\Adoption_Associate_MailRecipientlist.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_ACCOUNT_PROJECT_SUMMARY_RAW_Bkp.sql" />
+    <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_AIA.sql" />
+    <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_CDB.sql" />
+    <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate_EAS.sql" />
+    <Build Include="ADP\Stored Procedures\InsertError.sql" />
+    <Build Include="ADP\Stored Procedures\InsertAdoptionProjects.sql" />
+    <Build Include="ADP\Stored Procedures\GetOPLMailerList.sql" />
+    <Build Include="ADP\Stored Procedures\DailyMainSpringEffortFrmGateway.sql" />
+    <Build Include="ADP\Stored Procedures\AIA_AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\AIA_AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\AVM_AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\AVM_AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\CDB_AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\CDB_AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_AssociateData_Monthly.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_AssociateData_Weekly.sql" />
+    <Build Include="ADP\Stored Procedures\Input_Data_Refresh_Associate.sql" />
+    <Build Include="ADP\Stored Procedures\SP_Centralrepository_SFDC_Account.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_ActiveAllocations.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_ACCOUNT_PROJECT_SUMMARY_RAW.sql" />
+    <Build Include="ADP\Stored Procedures\ACCOUNT_PROJECT_SUMMARY_RAW.sql" />
+    <Build Include="ADP\Stored Procedures\EAS_Adoption_Associate_MailRecipientlist.sql" />
+    <Build Include="ADP\Stored Procedures\BU_SUMMARY.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_Project.sql" />
+    <Build Include="ADP\Stored Procedures\SP_CentralRepository_Associate_Details.sql" />
+    <Build Include="ADP\Stored Procedures\CDB_Adoption_Associate_MailRecipientlist.sql" />
+    <Build Include="ADP\Stored Procedures\AIA_Adoption_Associate_MailRecipientlist.sql" />
+    <Build Include="ADP\User Defined Types\TVP_ActiveAdoptionProjectList.sql" />
+    <Build Include="Security\ADP.sql" />
+    <Build Include="Security\ADPR.sql" />
+  </ItemGroup>
+</Project>
